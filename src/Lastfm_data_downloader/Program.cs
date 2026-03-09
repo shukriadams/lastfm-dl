@@ -30,6 +30,15 @@ namespace Lastfm_data_downloader
                     Console.WriteLine("Usage:");
                 }
 
+                command = "download";
+
+                if (command == "download")
+                {
+                    string user = File.ReadAllText("./user"); // dev only
+                    Download download = new Download();
+                    download.Work(user, DataTypes.Scrobbles);
+                }
+
                 if (command == "version")
                 {
                     Version version = new Version();

@@ -1,0 +1,15 @@
+{
+    "name": "lastfm-data-downloader",
+    "image": "shukriadams/dotnet6build:0.0.2",
+    "forwardPorts": [],
+    "customizations": {
+        "vscode": {
+            "extensions": ["ms-dotnettools.csdevkit"],
+            "settings" : {
+                "editor.codeLens": false,
+                "editor.autoClosingBrackets": "never",
+                "editor.autoIndent": "brackets"
+            }
+        }
+    }
+}

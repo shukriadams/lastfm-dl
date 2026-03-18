@@ -40,13 +40,34 @@ namespace Lastfm_data_downloader
         /// <summary>
         /// 
         /// </summary>
-        public void Work(string user, DataTypes dataType)
+        public void Work(string user, string cookiePath, DataTypes dataType, pagePause = 2000)
         {
-            int pagePause = 10000; // ms to wait between page pulls. Don't hammer.
+            
             System.IO.Directory.CreateDirectory("./working");
 
-            // you need a valid auth cookie from a current lastfm loing to access
-            string cookie = File.ReadAllText("./cookie");
+            if (pagePause < 2000)
+            {
+                Console.WriteLine($"Pause cannot be less than 2 seconds - don't hammer last.fm. ");
+                return;
+            }
+
+            if (!File.Exists(cookiePath))
+            {
+                Console.WriteLine($"Cookie file not found at path {cookiePath}");
+                return;
+            }
+
+            string cookie = string.Empty;
+            try 
+            {
+                cookie = File.ReadAllText(cookiePath);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error reading cookie at path {cookiePath}");
+                Console.WriteLine(ex.Message);
+                return;
+            }
 
             // calculate pages
             WebClient client = new WebClient();

@@ -2,7 +2,8 @@ namespace Lastfm_data_downloader
 {
     public class Scrobble 
     {
-        public string Id {get;set;}
+        public int Index {get;set;}
+        public int Page {get;set;}
         public string Name {get;set;}
         public string Artist {get;set;}
         public string Timestamp {get;set;}

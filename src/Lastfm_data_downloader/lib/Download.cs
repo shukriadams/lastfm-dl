@@ -40,12 +40,13 @@ namespace Lastfm_data_downloader
         /// <summary>
         /// 
         /// </summary>
-        public void Work(string user, string cookiePath, DataTypes dataType, pagePause = 2000)
+        public void Work(string user, string cookiePath, DataTypes dataType, bool resume = true, int? forcePage = null, int pagePause = 5000)
         {
-            
-            System.IO.Directory.CreateDirectory("./working");
+            string lastPageFilePath = "./working/lastpage";
 
-            if (pagePause < 2000)
+            System.IO.Directory.CreateDirectory("./working/scrobbles");
+
+            if (pagePause < 5000)
             {
                 Console.WriteLine($"Pause cannot be less than 2 seconds - don't hammer last.fm. ");
                 return;
@@ -88,12 +89,83 @@ namespace Lastfm_data_downloader
                 Console.WriteLine("Failed to get last page");
                 return;
             }
-            int lastPage = Int32.Parse(lastPagination.InnerText);
 
-            Console.WriteLine($"{lastPage} pages detected");
+            int lastPage = 0;
+            try 
+            {
+                lastPage = Int32.Parse(lastPagination.InnerText);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"page value \"{lastPagination.InnerText}\" likely not a valid integer.\n{ex.Message}");
+                return;
+            }
 
-            // start processing backwards, oldest records are last
+            Console.WriteLine($"User {user} has {lastPage} pages of plays");
+
+            // start processing backwards, oldest records first
             int currentPage = lastPage;
+
+            if (forcePage != null)
+            {
+                if (resume)
+                {
+                    Console.WriteLine("Error : cannot both resume and force page - enable one only");
+                    return;
+                }
+
+                if (forcePage < 0){
+                    Console.WriteLine("ERROR : Page cannot be less than zero");
+                    return;
+                }
+
+                if (forcePage > lastPage){
+                    Console.WriteLine($"ERROR : cannot force page greater than existing max of {lastPage} from Last.fm");
+                    return;
+                }
+
+                currentPage = forcePage.Value;
+                Console.WriteLine($"Paging will start at user specified value {forcePage}");
+            }
+
+
+            // try to find last page file
+            if (resume)
+            {
+                if (File.Exists(lastPageFilePath))
+                {
+                    string rawLastPage;
+                    try 
+                    {
+                        rawLastPage = File.ReadAllText(lastPageFilePath);
+
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine($"ERROR : reading last page cache file {lastPageFilePath}");
+                        return;
+                    }
+
+                    try 
+                    {
+                        currentPage = Int32.Parse(rawLastPage);
+                        if (currentPage > lastPage)
+                        {
+                            Console.WriteLine($"ERROR : last processed page is {currentPage} but maximum allowed page based on existing last.fm data is {lastPage}");
+                            return;
+                        }
+
+                        Console.WriteLine($"Resuming import from last processed page {currentPage}");
+                    }
+                    catch(Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        return;
+                    }
+                }
+            }
+
+
             while(currentPage > 0)
             {
                 client = new WebClient();
@@ -137,6 +209,8 @@ namespace Lastfm_data_downloader
                 var plays = chart.SelectNodes(".//tr[@data-scrobble-row]").Reverse();
 
                 int id = 0;
+                List<Scrobble> scrobbles = new List<Scrobble>();
+
                 foreach(var play in plays)
                 {
                     Scrobble scrobble = new Scrobble();
@@ -145,31 +219,34 @@ namespace Lastfm_data_downloader
                     scrobble.Artist = play.SelectSingleNode("td[contains(@class, 'chartlist-artist')]").InnerText.Trim();
                     scrobble.Name = play.SelectSingleNode("td[contains(@class, 'chartlist-name')]").InnerText.Trim();
                     scrobble.Timestamp = play.SelectSingleNode("td[contains(@class, 'chartlist-timestamp')]").SelectSingleNode(".//span").Attributes["title"].Value;
-                    scrobble.Id = Hash(scrobble.Timestamp + "__" + scrobble.Artist + "__" + scrobble.Name);
-
-                    string itemPath = Path.Join("./working", DirectoryHelper.GetPath(scrobble.Id, 5), $"{scrobble.Id}.json");
-
-                    if (File.Exists(itemPath))
-                    {
-                        Console.WriteLine($"Scrobble {scrobble.Id} (based on signature {scrobble.Timestamp} {scrobble.Artist} {scrobble.Name}) already exists, skipping");
-                        continue;
-
-                    }
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(itemPath));
-                    Console.WriteLine(itemPath);
-
+                    scrobble.Index = id;
+                    scrobble.Page = currentPage;
 
                     var imageElement = play.SelectSingleNode("td[contains(@class, 'chartlist-image')]").SelectSingleNode(".//img"); //;
                     var image = String.Empty;
                     if (imageElement != null)
                         scrobble.Image = imageElement.Attributes["src"].Value;
-
-                    File.WriteAllText(itemPath, JsonConvert.SerializeObject(scrobble, Formatting.Indented));
-                    Console.WriteLine($"Created scrobble {scrobble.Id}:{scrobble.Artist}-{scrobble.Name} ({scrobble.Timestamp})");
+    
+                    Console.WriteLine($"Parsed scrobble : {scrobble.Artist}-{scrobble.Name} ({scrobble.Timestamp})");
+                    scrobbles.Add(scrobble);
+                    id ++;
                 } 
 
-                Console.WriteLine($"Processed page {currentPage}, pausing {pagePause} ms");
+                // ensure directory
+                // Directory.CreateDirectory(Path.GetDirectoryName(itemPath));
+                File.WriteAllText($"./working/scrobbles/page_{currentPage}.json", JsonConvert.SerializeObject(scrobbles, Formatting.Indented));
+                Console.WriteLine($"Saved page {currentPage}, pausing {pagePause} ms");
+
+                try 
+                {
+                    File.WriteAllText(lastPageFilePath, currentPage.ToString());
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine($"Failed to update last processed page file at path {lastPageFilePath}\n{ex.Message}");
+                    return;
+                }
+
                 Thread.Sleep(pagePause);
                 currentPage --;
             }

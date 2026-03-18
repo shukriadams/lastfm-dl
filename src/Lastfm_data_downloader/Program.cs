@@ -20,13 +20,19 @@ namespace Lastfm_data_downloader
 
                     System.Environment.Exit(1);
                 }
+
+                Console.WriteLine("args:" + String.Join(",", switches.Arguments));
                 
                 string command = null;
                 if (switches.Contains("version") || switches.Contains("v"))
                     command = "version";
                 else if (switches.Contains("download") || switches.Contains("d"))
                     command = "download";
+                else if (switches.Contains("collate"))
+                    command = "collate";
                 
+                //Console.WriteLine("command : " + command);
+
                 if (command == null || switches.Contains("help") || switches.Contains("h"))
                 {
                     Console.WriteLine("Usage:");
@@ -35,7 +41,6 @@ namespace Lastfm_data_downloader
 
                 if (command == "download")
                 {
-                    // Console.WriteLine(String.Join(",", switches.Arguments));
                     if (!switches.Contains("user") && !switches.Contains("u")){
                         Console.WriteLine($"Error: User required. Use --user|-u <lastfm username>");
                         System.Environment.Exit(1);
@@ -48,6 +53,12 @@ namespace Lastfm_data_downloader
 
                     Download download = new Download();
                     download.Work(switches.Get("user", "u"), switches.Get("cookie", "c"), DataTypes.Scrobbles);
+                }
+
+                if (command == "collate")
+                {
+                    Collate collate = new Collate();
+                    collate.Work();
                 }
 
                 if (command == "version")

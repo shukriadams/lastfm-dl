@@ -46,4 +46,8 @@ When you're done processing all your pages run
 
 This combines all pages into a single json file.
 
+## Common issues
+
+If you have a lot of data, you will likely hit a short-term rate limit on your requests - this takes the form of an error 600. Wait a few hours, try again. 
+
 

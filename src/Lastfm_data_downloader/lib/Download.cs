@@ -232,10 +232,9 @@ namespace Lastfm_data_downloader
                     id ++;
                 } 
 
-                // ensure directory
-                // Directory.CreateDirectory(Path.GetDirectoryName(itemPath));
+                int percent = Percent.Calc(lastPage - currentPage,lastPage);
                 File.WriteAllText($"./working/scrobbles/page_{currentPage}.json", JsonConvert.SerializeObject(scrobbles, Formatting.Indented));
-                Console.WriteLine($"Saved page {currentPage}, pausing {pagePause} ms");
+                Console.WriteLine($"Saved page {currentPage}/{lastPage} ({percent}%), pausing {pagePause} ms");
 
                 try 
                 {

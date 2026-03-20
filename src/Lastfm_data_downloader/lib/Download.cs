@@ -169,7 +169,13 @@ namespace Lastfm_data_downloader
             while(currentPage > 0)
             {
                 client = new WebClient();
-
+                string currentPageSavePath = $"./working/scrobbles/page_{currentPage}.json";
+                if (File.Exists(currentPageSavePath))
+                {
+                    currentPage --;
+                    Console.WriteLine($"Page {currentPage} already processed, skipping");
+                    continue;
+                }
                 Console.WriteLine($"Processing page {currentPage}");
 
                 string pageUrl = $"https://www.last.fm/user/{user}/library?page={currentPage}";
@@ -203,37 +209,48 @@ namespace Lastfm_data_downloader
 
                 htmlDoc = new HtmlDocument();
                 htmlDoc.LoadHtml(raw);
-                var chart = htmlDoc.DocumentNode.SelectSingleNode("//table[contains(@class, 'chartlist')]");
-                
-                // work backwards, we stop all processing when we encounter a record that has already been processed
-                var plays = chart.SelectNodes(".//tr[@data-scrobble-row]").Reverse();
 
+                HtmlNodeCollection charts = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'chartlist')]");
                 int id = 0;
                 List<Scrobble> scrobbles = new List<Scrobble>();
 
-                foreach(var play in plays)
+                foreach(var chart in charts)
                 {
-                    Scrobble scrobble = new Scrobble();
+                    HtmlNodeCollection plays = chart.SelectNodes(".//tr[@data-scrobble-row]");
+                    if (plays == null)
+                    {
+                        Console.WriteLine("No plays found on page. This is unexpected, and might be a glitch from Lastfm. Try again?");
+                        return;
+                    }
 
-                    scrobble.ScrobbleId = play.Attributes["data-edit-scrobble-id"].Value;
-                    scrobble.Artist = play.SelectSingleNode("td[contains(@class, 'chartlist-artist')]").InnerText.Trim();
-                    scrobble.Name = play.SelectSingleNode("td[contains(@class, 'chartlist-name')]").InnerText.Trim();
-                    scrobble.Timestamp = play.SelectSingleNode("td[contains(@class, 'chartlist-timestamp')]").SelectSingleNode(".//span").Attributes["title"].Value;
-                    scrobble.Index = id;
-                    scrobble.Page = currentPage;
+                    foreach(var play in plays)
+                    {
+                        Scrobble scrobble = new Scrobble();
 
-                    var imageElement = play.SelectSingleNode("td[contains(@class, 'chartlist-image')]").SelectSingleNode(".//img"); //;
-                    var image = String.Empty;
-                    if (imageElement != null)
-                        scrobble.Image = imageElement.Attributes["src"].Value;
-    
-                    Console.WriteLine($"Parsed scrobble : {scrobble.Artist}-{scrobble.Name} ({scrobble.Timestamp})");
-                    scrobbles.Add(scrobble);
-                    id ++;
-                } 
+                        scrobble.ScrobbleId = play.Attributes["data-edit-scrobble-id"].Value;
+                        scrobble.Artist = play.SelectSingleNode("td[contains(@class, 'chartlist-artist')]").InnerText.Trim();
+                        scrobble.Name = play.SelectSingleNode("td[contains(@class, 'chartlist-name')]").InnerText.Trim();
+                        scrobble.Timestamp = play.SelectSingleNode("td[contains(@class, 'chartlist-timestamp')]").SelectSingleNode(".//span").Attributes["title"].Value;
+                        scrobble.Index = id;
+                        scrobble.Page = currentPage;
+
+                        scrobble.Artist = WebUtility.HtmlDecode(scrobble.Artist);
+                        scrobble.Name = WebUtility.HtmlDecode(scrobble.Name);
+
+                        var imageElement = play.SelectSingleNode("td[contains(@class, 'chartlist-image')]").SelectSingleNode(".//img"); //;
+                        var image = String.Empty;
+                        if (imageElement != null)
+                            scrobble.Image = imageElement.Attributes["src"].Value;
+        
+                        Console.WriteLine($"Parsed scrobble : {scrobble.Artist}-{scrobble.Name} ({scrobble.Timestamp})");
+                        scrobbles.Add(scrobble);
+                        id ++;
+                    } 
+
+                }
 
                 int percent = Percent.Calc(lastPage - currentPage,lastPage);
-                File.WriteAllText($"./working/scrobbles/page_{currentPage}.json", JsonConvert.SerializeObject(scrobbles, Formatting.Indented));
+                File.WriteAllText(currentPageSavePath, JsonConvert.SerializeObject(scrobbles, Formatting.Indented));
                 Console.WriteLine($"Saved page {currentPage}/{lastPage} ({percent}%), pausing {pagePause} ms");
 
                 try 

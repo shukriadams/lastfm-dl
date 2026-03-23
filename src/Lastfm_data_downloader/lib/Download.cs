@@ -43,6 +43,7 @@ namespace Lastfm_data_downloader
         public void Work(string user, string cookiePath, DataTypes dataType, bool resume = true, int? forcePage = null, int pagePause = 5000)
         {
             string lastPageFilePath = "./working/lastpage";
+            string incidentLogPath = "./working/incident-log.txt";
 
             System.IO.Directory.CreateDirectory("./working/scrobbles");
 
@@ -105,6 +106,7 @@ namespace Lastfm_data_downloader
 
             // start processing backwards, oldest records first
             int currentPage = lastPage;
+            int maxPageRetries = 5;
 
             if (forcePage != null)
             {
@@ -165,14 +167,23 @@ namespace Lastfm_data_downloader
                 }
             }
 
+            int pageRetries = 0;
 
             while(currentPage > 0)
             {
                 client = new WebClient();
+
+                if (pageRetries > maxPageRetries)
+                {
+                    Console.WriteLine($"ERROR : Too many retries on page {currentPage}, exiting");
+                    return;
+                }
+
                 string currentPageSavePath = $"./working/scrobbles/page_{currentPage}.json";
                 if (File.Exists(currentPageSavePath))
                 {
                     currentPage --;
+                    pageRetries = 0;
                     Console.WriteLine($"Page {currentPage} already processed, skipping");
                     continue;
                 }
@@ -194,6 +205,9 @@ namespace Lastfm_data_downloader
                         Console.WriteLine($"Url : {pageUrl}.Body is : ");
                         Console.WriteLine(body);
                         Console.WriteLine("Sleeping, then retrying");
+                        File.AppendAllText(incidentLogPath, $"Unexpected error reading page {currentPage}, attempt {pageRetries} ({DateTime.Now}).{Environment.NewLine}");
+                        File.AppendAllText(incidentLogPath, $"{ex}{Environment.NewLine}");
+                        pageRetries ++;
                         Thread.Sleep(pagePause);
                         continue;
                     }
@@ -203,6 +217,10 @@ namespace Lastfm_data_downloader
                     Console.WriteLine(ex);
                     Console.WriteLine($"Url : {pageUrl}");
                     Console.WriteLine("Sleeping, then retrying");
+                    File.AppendAllText(incidentLogPath, $"Unexpected error reading page {currentPage}, attempt {pageRetries} ({DateTime.Now}).{Environment.NewLine}");
+                    File.AppendAllText(incidentLogPath, $"{ex}{Environment.NewLine}");
+                    pageRetries ++;
+
                     Thread.Sleep(pagePause);
                     continue;
                 }
@@ -211,6 +229,16 @@ namespace Lastfm_data_downloader
                 htmlDoc.LoadHtml(raw);
 
                 HtmlNodeCollection charts = htmlDoc.DocumentNode.SelectNodes("//table[contains(@class, 'chartlist')]");
+                if (charts == null)
+                {
+
+                    // pause and retry this page
+                    Thread.Sleep(pagePause);
+                    File.AppendAllText(incidentLogPath, $"No chart on page {currentPage}, attempt {pageRetries} ({DateTime.Now}).");
+                    pageRetries ++;
+                    continue;
+                }
+
                 int id = 0;
                 List<Scrobble> scrobbles = new List<Scrobble>();
 
@@ -219,8 +247,11 @@ namespace Lastfm_data_downloader
                     HtmlNodeCollection plays = chart.SelectNodes(".//tr[@data-scrobble-row]");
                     if (plays == null)
                     {
-                        Console.WriteLine("No plays found on page. This is unexpected, and might be a glitch from Lastfm. Try again?");
-                        return;
+                        // pause and retry this page
+                        Thread.Sleep(pagePause);
+                        File.AppendAllText(incidentLogPath, $"No plays on page {currentPage}, attempt {pageRetries} ({DateTime.Now}).");
+                        pageRetries ++;
+                        continue;
                     }
 
                     foreach(var play in plays)
@@ -264,6 +295,7 @@ namespace Lastfm_data_downloader
                 }
 
                 Thread.Sleep(pagePause);
+                pageRetries = 0;
                 currentPage --;
             }
         }

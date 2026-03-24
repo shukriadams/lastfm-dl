@@ -1,16 +1,12 @@
 # Last FM downloader
 
-Terminal app that downloads scrobbles from Last.fm - use this to download your play history for posterity. Data is stored as a JSON file.
+App for downloading scrobbles from Last.fm - use this to download your play history for posterity. Data is stored as a JSON file.
 
 ## Features
 
-Supports limited download resumption - if your download gets broken or interrupted, you can resume later. Note that
-resumption is limited by  Last.fm's paging and data system :
-
-- pages list user scrobbles newest to oldest
-- total page count changes as user scrobble count increases.
-- pages do not support any kind of fixed/absolute delimiter like time stamp or song index. If you go back far enough, Last.fm scrobbles can have 
-duplicate timestamps or scrobble ids, so these are not reliable.
+- Allows some degree of download resumption (*)
+- Will not hammer last.fm, mostly avoiding rate limits.
+- Confirmed working on large histories - 900K+ scrobbles, going back to at least 2004.
 
 ## Install
 

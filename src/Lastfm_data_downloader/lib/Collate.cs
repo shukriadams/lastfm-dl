@@ -7,7 +7,7 @@ namespace Lastfm_data_downloader
     {
         public void Work()
         {
-            string[] scrobbleEvents = Directory.GetFiles("./working/scrobbles", "*.*", SearchOption.AllDirectories);
+            string[] scrobbleEvents = Directory.GetFiles("./working/scrobblePages", "*.json", SearchOption.AllDirectories);
             Console.WriteLine($"Found {scrobbleEvents.Length} pages");
             List<Scrobble> scobbles = new List<Scrobble>();
 

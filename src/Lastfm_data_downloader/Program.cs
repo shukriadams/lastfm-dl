@@ -21,8 +21,6 @@ namespace Lastfm_data_downloader
                     System.Environment.Exit(1);
                 }
 
-                Console.WriteLine("args:" + String.Join(",", switches.Arguments));
-                
                 string command = null;
                 if (switches.Contains("version") || switches.Contains("v"))
                     command = "version";
@@ -30,9 +28,11 @@ namespace Lastfm_data_downloader
                     command = "download";
                 else if (switches.Contains("collate"))
                     command = "collate";
-                
-                //Console.WriteLine("command : " + command);
-
+                else if (switches.Contains("decollate"))
+                    command = "decollate";
+                else if (switches.Contains("dupe"))
+                    command = "dupe";
+ 
                 if (command == null || switches.Contains("help") || switches.Contains("h"))
                 {
                     Console.WriteLine("Usage:");
@@ -57,6 +57,7 @@ namespace Lastfm_data_downloader
 
                 if (command == "collate")
                 {
+                    Console.WriteLine("Collating ...");
                     Collate collate = new Collate();
                     collate.Work();
                 }

@@ -2,10 +2,7 @@ namespace Lastfm_data_downloader
 {
     public class Scrobble 
     {
-        public int Index {get;set;}
-        
-        public int Page {get;set;}
-        
+       
         public string Name {get;set;}
 
         public string Artist {get;set;}
@@ -17,11 +14,6 @@ namespace Lastfm_data_downloader
         public string Timestamp {get;set;}
 
         public string Image {get;set;}
-
-        ///
-        /// Id from Last.fm's API. Worthless, mutable and duplicated.
-        /// 
-        public string ScrobbleId {get;set;}
 
         public override string ToString()
         {

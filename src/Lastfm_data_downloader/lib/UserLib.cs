@@ -84,6 +84,7 @@ namespace Lastfm_data_downloader
             }            
         }
 
+
         ///
         /// 
         /// 
@@ -105,6 +106,14 @@ namespace Lastfm_data_downloader
                 }
                 catch (WebException ex)
                 {
+                    HttpWebResponse response = ex.Response as HttpWebResponse;
+                    if (response != null && (int)response.StatusCode == 404)
+                    {
+                        return new ScrobblesOnPageResponse { 
+                            Description = $"User \"{user}\" does not exist on last.fm"
+                        };
+                    }
+
                     using (StreamReader r = new StreamReader(ex.Response.GetResponseStream()))
                     {
                         Console.WriteLine($"{ex}\n" +
@@ -173,7 +182,6 @@ namespace Lastfm_data_downloader
                         scrobble.Artist = WebUtility.HtmlDecode(play.SelectSingleNode("td[contains(@class, 'chartlist-artist')]").InnerText.Trim());
                         scrobble.Name = WebUtility.HtmlDecode(play.SelectSingleNode("td[contains(@class, 'chartlist-name')]").InnerText.Trim());
                         scrobble.Timestamp = play.SelectSingleNode("td[contains(@class, 'chartlist-timestamp')]").SelectSingleNode(".//span").Attributes["title"].Value;
-                        scrobble.Page = page;
 
                         HtmlNode imageElement = play.SelectSingleNode("td[contains(@class, 'chartlist-image')]").SelectSingleNode(".//img");
                         if (imageElement != null)
@@ -187,15 +195,11 @@ namespace Lastfm_data_downloader
                     Scrobbles = scrobbles,
                     Succeeded = true
                 };
-
-
             }
 
             return new ScrobblesOnPageResponse{
                 Description = $"ERROR : Too many retries on page {page}, exiting"
             };
-
-
         }
     }    
 }

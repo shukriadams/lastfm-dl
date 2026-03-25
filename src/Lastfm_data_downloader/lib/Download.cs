@@ -123,12 +123,6 @@ namespace Lastfm_data_downloader
             while(currentPage > 0)
             {
                 string currentPageSavePath = $"./working/scrobbles/page_{currentPage}.json";
-                if (File.Exists(currentPageSavePath))
-                {
-                    currentPage --;
-                    Console.WriteLine($"Page {currentPage} already processed, skipping");
-                    continue;
-                }
 
                 Console.WriteLine($"Processing page {currentPage}");
 

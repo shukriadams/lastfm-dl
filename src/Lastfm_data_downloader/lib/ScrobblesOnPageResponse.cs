@@ -6,6 +6,7 @@ namespace Lastfm_data_downloader
     {
         public enum Errors
         {
+            UserDoesNotfound,
             Unknown
         }
         

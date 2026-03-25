@@ -23,7 +23,7 @@ namespace Lastfm_data_downloader
             }
 
             string collatedFilePath = $"./working/all_scrobbles.json";
-            scobbles = scobbles.OrderBy(s => s.Page).ThenBy(s => s.Index).ToList();
+            scobbles = scobbles.OrderByDescending(s => s.Timestamp).ToList();
 
             File.WriteAllText(collatedFilePath, JsonConvert.SerializeObject(scobbles, Formatting.Indented));
             Console.WriteLine($"Finished collating {scrobbleEvents.Length} pages, {scobbles.Count()} scrobbles.");

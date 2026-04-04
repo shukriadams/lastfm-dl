@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Lastfm_data_downloader.Porter_Packages.MadScience_ReflectionHelpers
+namespace Lastfm_dl.Porter_Packages.MadScience_ReflectionHelpers
 {
     /// <summary>
     /// A collection of static helper methods for working with reflection-based resources.

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Lastfm_data_downloader
+namespace Lastfm_dl
 {
     public class Hash
     {

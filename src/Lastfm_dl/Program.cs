@@ -1,6 +1,6 @@
-using Lastfm_data_downloader.Porter_Packages.Madscience_CommandLineSwitches;
+using Lastfm_dl.Porter_Packages.Madscience_CommandLineSwitches;
 
-namespace Lastfm_data_downloader
+namespace Lastfm_dl
 {
     class Program
     {
@@ -17,7 +17,7 @@ namespace Lastfm_data_downloader
                 switches.Add(new Argument("limit", typeof(int?)) { LongName = "limit", ShortName = "l" });
                 switches.Add(new Argument("ignorePageCount", typeof(bool)) { LongName = "ignorePageCount", DefaultValue = "false" });
 
-                Console.WriteLine("Lastfm downloader");
+                Console.WriteLine("Lastfm-dl");
 
                 BindResponse bindResponse = switches.Bind(
                     args, 
@@ -38,7 +38,7 @@ namespace Lastfm_data_downloader
                 if (command == null)
                 {
                     Console.WriteLine("Usage:");
-                    Console.WriteLine("Download data : --download|-d --user|-u <Lastfm username> --cookie|-c <path to file with last.fm cookie text>");
+                    Console.WriteLine("Download scrobbles : --download|-d --user|-u <Lastfm username> --cookie|-c <path to file with last.fm cookie text>");
                 }
 
                 if (command == "version")

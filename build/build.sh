@@ -51,11 +51,11 @@ fi
 if [ $BUILD -eq 1 ]; then
 
     # write hash + tag to currentVersion.txt in source, this will be displayed by web ui
-    echo "$TAG (${HASH})" > ./../src/Lastfm_data_downloader/currentVersion.txt 
+    echo "$TAG (${HASH})" > ./../src/Lastfm_dl/currentVersion.txt 
 
-    dotnet restore ./../src/Lastfm_data_downloader
+    dotnet restore ./../src/Lastfm_dl
 
-    dotnet publish ./../src/Lastfm_data_downloader/Lastfm_data_downloader.csproj \
+    dotnet publish ./../src/Lastfm_dl/Lastfm_dl.csproj \
         --configuration Release \
         --runtime $RUNTIME \
         -o ./../publish \
@@ -64,14 +64,12 @@ if [ $BUILD -eq 1 ]; then
         -p:PublishTrimmed=true \
         -p:IncludeNativeLibrariesForSelfExtract=true \
         --self-contained true 
-
-    mv ./../publish/Lastfm_data_downloader ./../publish/lastfm-dl 
 fi
 
 if [ $TEST -eq 1 ]; then
     echo "testing ... "
     
-    ./../publish/lastfm-dl -v
+    ./../publish/Lastfm_dl -v
 
     echo "test passed"
 fi
@@ -86,13 +84,13 @@ if [ $PUSH -eq 1 ]; then
     
     echo "uploading to github"
     repo="shukriadams/lastfm-dl"
-    name="porter_${RUNTIME}"
+    name="lastfm-dl_${RUNTIME}"
     
 
     if [ $RUNTIME = "linux-x64" ] ; then
-        filename=./../publish/Porter
+        filename=./../publish/Lastfm_dl
     elif [ $RUNTIME = "win-x64" ] ; then
-        filename=./../publish/Porter.exe
+        filename=./../publish/Lastfm_dl.exe
     fi
 
     GH_REPO="https://api.github.com/repos/$repo"

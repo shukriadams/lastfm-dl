@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using System.IO;
 
-namespace Lastfm_data_downloader
+namespace Lastfm_dl
 {
     public class SessionLib
     {

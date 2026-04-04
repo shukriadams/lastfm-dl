@@ -4,11 +4,11 @@ using System.Net;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using System.Text;
-using Lastfm_data_downloader.Porter_Packages.MadScience_ReflectionHelpers;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
+using Lastfm_dl.Porter_Packages.MadScience_ReflectionHelpers;
 
-namespace Lastfm_data_downloader
+namespace Lastfm_dl
 {
     public class Download
     {

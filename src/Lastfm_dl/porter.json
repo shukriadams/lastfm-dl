@@ -1,5 +1,5 @@
 {
-    "name" : "Lastfm_data_downloader",
+    "name" : "Lastfm_dl",
     "runtimes" : [ 6 ],
     "author" : "Shukri Adams <mail@shukriadams.com",
     "license": "MIT",

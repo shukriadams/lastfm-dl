@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Lastfm_data_downloader
+namespace Lastfm_dl
 {
     public class ScrobblesOnPageResponse : Response
     {

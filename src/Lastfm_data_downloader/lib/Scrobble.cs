@@ -2,7 +2,12 @@ namespace Lastfm_data_downloader
 {
     public class Scrobble 
     {
-       
+        
+        public int Page {get;set;}
+
+        // position of scobble on page - crosses date blocks
+        public int Index {get;set;}
+
         public string Name {get;set;}
 
         public string Artist {get;set;}
@@ -12,6 +17,8 @@ namespace Lastfm_data_downloader
         /// user profile have been observed in the wild.
         /// 
         public string Timestamp {get;set;}
+
+        public DateTime TimestampDT {get;set;}
 
         public string Image {get;set;}
 

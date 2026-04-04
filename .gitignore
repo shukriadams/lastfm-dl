@@ -1,7 +1,8 @@
 src/Lastfm_data_downloader/bin
 src/Lastfm_data_downloader/obj
 src/Lastfm_data_downloader/working
-src/Lastfm_data_downloader/cookie
+src/Lastfm_data_downloader/.tmp
 src/Lastfm_data_downloader/user
 vagrant/virtio/.vagrant
 src/Lastfm_data_downloader/.cookie
+.

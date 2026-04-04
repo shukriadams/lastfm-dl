@@ -5,10 +5,15 @@ namespace Lastfm_data_downloader
 {
     public class Collate
     {
-        public void Work()
+        public Response Work(bool appendToExisting)
         {
-            string[] scrobbleEvents = Directory.GetFiles("./working/scrobblePages", "*.json", SearchOption.AllDirectories);
-            Console.WriteLine($"Found {scrobbleEvents.Length} pages");
+            string[] scrobbleEvents = Directory.GetFiles(PathLib.ScrobblesPath, "*.json", SearchOption.AllDirectories);
+            if (scrobbleEvents.Length == 0)
+                return new Response { 
+                    Succeeded = true,
+                    Description = $"WARNING - No scrobble pages found"
+                };
+
             List<Scrobble> scobbles = new List<Scrobble>();
 
             for (int i = 0; i < scrobbleEvents.Length ; i ++)
@@ -22,11 +27,32 @@ namespace Lastfm_data_downloader
                 Console.WriteLine($"Collating page {(i+1)} of {scrobbleEvents.Length}");
             }
 
-            string collatedFilePath = $"./working/all_scrobbles.json";
+            if (scobbles.Count() == 0){
+                Console.WriteLine("No new/additional scrobbles downloaded, nothing to do.");
+                return new Response { Succeeded = true };
+            }
+
+            Console.WriteLine($"Processing {scobbles.Count()} new/additional scrobbles, spread over {scrobbleEvents.Length} page(s).");
+
+            string collatedFilePath = PathLib.CollatedFilePath;
+
+            if (appendToExisting && File.Exists(collatedFilePath))
+            {
+                string collatedText = File.ReadAllText(collatedFilePath);
+                List<Scrobble> collated = JsonConvert.DeserializeObject<List<Scrobble>>(collatedText);
+                scobbles = scobbles.Concat(collated).ToList();
+
+                Console.WriteLine($"Merged {collated.Count()} previously downloaded scrobbles with newly-downloaded scrobbles.");
+            }
+
             scobbles = scobbles.OrderByDescending(s => s.Timestamp).ToList();
 
             File.WriteAllText(collatedFilePath, JsonConvert.SerializeObject(scobbles, Formatting.Indented));
-            Console.WriteLine($"Finished collating {scrobbleEvents.Length} pages, {scobbles.Count()} scrobbles.");
+            
+            Console.WriteLine($"Saved {scobbles.Count()} scrobbles in total.");
+
+            // todo : flesh this out
+            return new Response{ Succeeded = true};
         }
     }
 }

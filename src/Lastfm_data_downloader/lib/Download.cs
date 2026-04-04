@@ -15,12 +15,20 @@ namespace Lastfm_data_downloader
         /// <summary>
         /// 
         /// </summary>
-        public void Work(string user, string cookiePath, DataTypes dataType, bool resume = true, int? forceStartPage = null, int pagePause = 5000)
+        public void Work(
+            string user, 
+            string cookiePath, 
+            int pagePause = 5000, 
+            bool resume = true, 
+            bool ignorePageCount = false,
+            bool additive = true,
+            bool forceOverWriteExistingSession = false,
+            int? forceStartPage = null, 
+            int? forceStopPage = null
+            )
         {
             string lastPageFilePath = "./working/lastpage";
             string incidentLogPath = "./working/incident-log.txt";
-
-            System.IO.Directory.CreateDirectory("./working/scrobbles");
 
             if (pagePause < 5000)
             {
@@ -28,6 +36,7 @@ namespace Lastfm_data_downloader
                 return;
             }
 
+            // verify cookie state
             if (!File.Exists(cookiePath))
             {
                 Console.WriteLine($"Cookie file not found at path {cookiePath}");
@@ -46,6 +55,7 @@ namespace Lastfm_data_downloader
                 return;
             }
 
+            // get nr of user pages, this also verifies user exists
             UserScrobblePagesResponse pagesLookupResponse = UserLib.GetScrobblePages(user);
             if (!pagesLookupResponse.Succeeded)
             {
@@ -53,78 +63,54 @@ namespace Lastfm_data_downloader
                 return;
             }
 
+            // determine state of current session, if any
+            SessionLib sessionLib = new SessionLib();
+            SessionInitializeResponse sessionInitializeResponse = sessionLib.Initialize(
+                currentPagesCount : pagesLookupResponse.Pages,
+                ignorePagesMismatch : ignorePageCount,
+                forceOverWriteExistingSession : forceOverWriteExistingSession);
 
-            int totalPages= pagesLookupResponse.Pages;
+            if (!sessionInitializeResponse.Succeeded)
+            {
+                Console.WriteLine($"ERROR : Session init failed {sessionInitializeResponse.Description}");
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(sessionInitializeResponse.Warning))
+                Console.WriteLine(sessionInitializeResponse.Warning);
+
+            int totalPages = pagesLookupResponse.Pages;
+
             Console.WriteLine($"User {user} has {totalPages} pages of scrobbles");
+            if (sessionInitializeResponse.IsSessionContinued)
+                Console.WriteLine($"Incomplete session found, created {sessionInitializeResponse.Session.Started}, on page {sessionInitializeResponse.Session.CurrentPage} of {sessionInitializeResponse.Session.TotalPages}, will continue from this.");
 
-            // start processing backwards, oldest records first
-            int currentPage = totalPages;
-            int maxPageRetries = 5;
+            // start processing forwards, newest records first. A session's default starting page will be 1
+            int currentPage = sessionInitializeResponse.Session.CurrentPage;
 
-            if (forceStartPage != null)
+            if (forceStopPage.HasValue && forceStopPage.Value > totalPages)
             {
-                if (resume)
-                {
-                    Console.WriteLine("Error : cannot both resume and force start page - use one only");
-                    return;
-                }
-
-                if (forceStartPage < 0){
-                    Console.WriteLine("ERROR : Page cannot be less than zero");
-                    return;
-                }
-
-                if (forceStartPage > totalPages){
-                    Console.WriteLine($"ERROR : cannot force page greater than existing max of {totalPages} from Last.fm");
-                    return;
-                }
-
-                currentPage = forceStartPage.Value;
-                Console.WriteLine($"Paging will start at user specified value {forceStartPage}");
+                Console.WriteLine($"Error : Forced stop page is {forceStopPage.Value}, which is greater than the number of pages this user has ({totalPages})");
+                return;
             }
+            
+            if (forceStopPage.HasValue)
+                Console.WriteLine($"Forced stop page set to {forceStopPage.Value}, will not process more than this.");
 
 
-            // try to find last page file
-            if (resume)
+            int updatedScrobbles = 0;
+            Scrobble lastNewScrobble = null;
+            Scrobble firstNewScrobble = null;
+
+            while(currentPage < totalPages)
             {
-                if (File.Exists(lastPageFilePath))
+                if (forceStopPage.HasValue && currentPage > forceStopPage.Value)
                 {
-                    string rawLastPage;
-                    try 
-                    {
-                        rawLastPage = File.ReadAllText(lastPageFilePath);
-                    }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine($"ERROR : reading last page cache file {lastPageFilePath}");
-                        return;
-                    }
-
-                    try 
-                    {
-                        currentPage = Int32.Parse(rawLastPage);
-                        if (currentPage > totalPages)
-                        {
-                            Console.WriteLine($"ERROR : last processed page is {currentPage} but maximum allowed page based on existing last.fm data is {totalPages}");
-                            return;
-                        }
-
-                        Console.WriteLine($"Resuming import from last processed page {currentPage}");
-                    }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        return;
-                    }
+                    Console.WriteLine($"Reached forced stop page {forceStopPage.Value}.");
+                    break;
                 }
-            }
 
-
-            while(currentPage > 0)
-            {
-                string currentPageSavePath = $"./working/scrobbles/page_{currentPage}.json";
-
-                Console.WriteLine($"Processing page {currentPage}");
+                string currentPageSavePath = $"{PathLib.ScrobblesPath}/page_{currentPage}.json";
 
                 ScrobblesOnPageResponse scrobblesOnPageResponse = UserLib.GetScrobbledOnPage(user, currentPage, cookie, pagePause);
                 if (!scrobblesOnPageResponse.Succeeded)
@@ -133,13 +119,44 @@ namespace Lastfm_data_downloader
                     return;
                 }
 
+                // transfer scrobble to write buffer, cut off at previously reached end of scrobbles if necessary. this is how 
+                // addative downloading is done
+                List<Scrobble> writePage = new List<Scrobble>();
+                bool limitReached = false;
+                
+                if (sessionInitializeResponse.Limit == null)
+                {
+                    writePage = scrobblesOnPageResponse.Scrobbles.ToList();
+                } 
+                else
+                {
+                    scrobblesOnPageResponse.Scrobbles = scrobblesOnPageResponse.Scrobbles.OrderByDescending(s => s.TimestampDT).ToList();
+
+                    foreach(Scrobble scrobble in scrobblesOnPageResponse.Scrobbles)
+                    {
+                        if (sessionInitializeResponse.Limit.Artist == scrobble.Artist &&
+                            sessionInitializeResponse.Limit.Name == scrobble.Name &&
+                            sessionInitializeResponse.Limit.Timestamp == scrobble.Timestamp){
+                                limitReached = true;
+                                break;
+                        }
+
+                        if (firstNewScrobble == null)
+                            firstNewScrobble = scrobble;
+
+                        updatedScrobbles ++;
+                        lastNewScrobble = scrobble;
+                        writePage.Add(scrobble);
+                    }
+                }
+ 
                 try
                 {
-                    File.WriteAllText(currentPageSavePath, JsonConvert.SerializeObject(scrobblesOnPageResponse.Scrobbles, Formatting.Indented));
+                    File.WriteAllText(currentPageSavePath, JsonConvert.SerializeObject(writePage, Formatting.Indented));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to write scrobble data for page {lastPageFilePath}\n{ex.Message}");
+                    Console.WriteLine($"ERROR : failed to write scrobble data for page {lastPageFilePath}\n{ex.Message}");
                     return;
                 }
 
@@ -149,20 +166,46 @@ namespace Lastfm_data_downloader
                 }
                 catch(Exception ex)
                 {
-                    Console.WriteLine($"Failed to update last processed page file at path {lastPageFilePath}\n{ex.Message}");
+                    Console.WriteLine($"ERROR : failed to update last processed page file at path {lastPageFilePath}\n{ex.Message}");
                     return;
                 }
 
                 // write out scrobbles found on page 
-                foreach(Scrobble scrobble in scrobblesOnPageResponse.Scrobbles)
-                    Console.WriteLine($"Parsed scrobble : \"{scrobble.Artist}\" - {scrobble.Name} ({scrobble.Timestamp})");
+                using(WriteToSameLine writeToSameLine = new WriteToSameLine())
+                foreach(Scrobble scrobble in writePage)
+                    writeToSameLine.Write($"Parsed scrobble : \"{scrobble.Artist}\" - {scrobble.Name} ({scrobble.Timestamp})");
 
-                int percent = Percent.Calc(totalPages - currentPage, totalPages);
-                Console.WriteLine($"Saved page {currentPage}/{totalPages} ({percent}%), pausing {pagePause} ms");
+
+                int percent = Percent.Calc(currentPage, totalPages);
+                Console.WriteLine($"Processed page {currentPage}/{totalPages} ({percent}%), pausing {pagePause} ms");
+
+                if (limitReached){
+                    Console.WriteLine($"Reached previously downloaded scrobble {sessionInitializeResponse.Limit}, stopping here. Imported {updatedScrobbles} new scrobbles.");
+                    if (lastNewScrobble != null && firstNewScrobble != null && sessionInitializeResponse.Limit != null)
+                        Console.WriteLine($"New scrobbles started at {firstNewScrobble}, ended at {lastNewScrobble}. The latter lined up against previously downloaded scrobble {sessionInitializeResponse.Limit}.");
+
+                    break;
+                }
 
                 Thread.Sleep(pagePause);
-                currentPage --;
+                currentPage ++;
+                sessionInitializeResponse.Session.CurrentPage = currentPage;
+                sessionLib.Update(sessionInitializeResponse.Session);
             }
+
+            // collate
+            Collate collate = new Collate();
+            Response collateResponse = collate.Work(additive);
+            if (!collateResponse.Succeeded)
+            {
+                Console.WriteLine($"ERROR : {collateResponse.Description}");
+                return;
+            }
+
+            // wipe session
+            sessionLib.Remove();
+
+            Console.WriteLine("Finished downloading.");
         }
     }    
 }

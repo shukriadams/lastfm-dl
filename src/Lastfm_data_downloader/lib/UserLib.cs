@@ -182,6 +182,7 @@ namespace Lastfm_data_downloader
                         scrobble.Artist = WebUtility.HtmlDecode(play.SelectSingleNode("td[contains(@class, 'chartlist-artist')]").InnerText.Trim());
                         scrobble.Name = WebUtility.HtmlDecode(play.SelectSingleNode("td[contains(@class, 'chartlist-name')]").InnerText.Trim());
                         scrobble.Timestamp = play.SelectSingleNode("td[contains(@class, 'chartlist-timestamp')]").SelectSingleNode(".//span").Attributes["title"].Value;
+                        scrobble.TimestampDT = DateTime.Parse(scrobble.Timestamp);
 
                         HtmlNode imageElement = play.SelectSingleNode("td[contains(@class, 'chartlist-image')]").SelectSingleNode(".//img");
                         if (imageElement != null)

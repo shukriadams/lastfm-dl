@@ -13,7 +13,7 @@ while [ -n "$1" ]; do
     case "$1" in
     --push|-p) PUSH=1 ;;
     --test|-t) TEST=1 ;;
-    --build) BUILD=1 ;;
+    --build|-b) BUILD=1 ;;
     --runtime|-r) RUNTIME="${2#*=}" ;;
     --tag) TAG="${2#*=}" ;;
     --hash) HASH="${2#*=}" ;;

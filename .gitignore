@@ -5,4 +5,4 @@ src/Lastfm_data_downloader/.tmp
 src/Lastfm_data_downloader/user
 vagrant/virtio/.vagrant
 src/Lastfm_data_downloader/.cookie
-.
+publish

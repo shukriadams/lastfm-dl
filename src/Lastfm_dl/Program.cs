@@ -15,7 +15,9 @@ namespace Lastfm_dl
                 switches.Add(new Argument("user", typeof(string)) { LongName = "user", ShortName = "u" });
                 switches.Add(new Argument("cookie", typeof(string)) { LongName = "cookie", ShortName = "c" });
                 switches.Add(new Argument("limit", typeof(int?)) { LongName = "limit", ShortName = "l" });
-                switches.Add(new Argument("ignorePageCount", typeof(bool)) { LongName = "ignorePageCount", DefaultValue = "false" });
+                switches.Add(new Argument("clear", typeof(bool)) { LongName = "clear"});
+                switches.Add(new Argument("path", typeof(string)) { LongName = "path", ShortName = "p", DefaultValue = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) });
+                switches.Add(new Argument("ignore", typeof(bool)) { LongName = "ignore" });
 
                 Console.WriteLine("Lastfm-dl");
 
@@ -65,8 +67,10 @@ namespace Lastfm_dl
                     download.Work(
                         user : switches.Get<string>("user"), 
                         cookiePath : switches.Get<string>("cookie"),
+                        path : switches.Get<string>("path"),
                         forceStopPage : switches.Get<int?>("limit"),
-                        ignorePageCount : switches.Get<bool>("ignorePageCount"));
+                        clearSession : switches.IsSet("clear"),
+                        ignorePageCount : switches.IsSet("ignore"));
                 }
             }
             catch (Exception ex)

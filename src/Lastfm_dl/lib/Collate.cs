@@ -5,16 +5,16 @@ namespace Lastfm_dl
 {
     public class Collate
     {
-        public Response Work(bool appendToExisting)
+        public Response Work(bool appendToExisting, string path)
         {
-            string[] scrobbleEvents = Directory.GetFiles(PathLib.ScrobblesPath, "*.json", SearchOption.AllDirectories);
+            string[] scrobbleEvents = Directory.GetFiles(PathLib.ScrobblesPath(path), "*.json", SearchOption.AllDirectories);
             if (scrobbleEvents.Length == 0)
                 return new Response { 
                     Succeeded = true,
                     Description = $"WARNING - No scrobble pages found"
                 };
 
-            List<Scrobble> scobbles = new List<Scrobble>();
+            Collation collation = new Collation();
 
             for (int i = 0; i < scrobbleEvents.Length ; i ++)
             {
@@ -23,33 +23,35 @@ namespace Lastfm_dl
                 string fileContent = File.ReadAllText(filePath);
 
                 List<Scrobble> page = JsonConvert.DeserializeObject<List<Scrobble>>(fileContent);
-                scobbles = scobbles.Concat(page).ToList();
+                collation.Scrobbles = collation.Scrobbles.Concat(page);
                 Console.WriteLine($"Collating page {(i+1)} of {scrobbleEvents.Length}");
             }
 
-            if (scobbles.Count() == 0){
-                Console.WriteLine("No new/additional scrobbles downloaded, nothing to do.");
+            if (collation.Scrobbles.Count() == 0)
+            {
+                Console.WriteLine("No new scrobbles downloaded, nothing to do.");
                 return new Response { Succeeded = true };
             }
 
-            Console.WriteLine($"Processing {scobbles.Count()} new/additional scrobbles, spread over {scrobbleEvents.Length} page(s).");
+            Console.WriteLine($"Processing {collation.Scrobbles.Count()} new scrobbles, in {scrobbleEvents.Length} page(s)");
 
-            string collatedFilePath = PathLib.CollatedFilePath;
+            string collatedFilePath = PathLib.CollatedFilePath(path);
 
             if (appendToExisting && File.Exists(collatedFilePath))
             {
                 string collatedText = File.ReadAllText(collatedFilePath);
-                List<Scrobble> collated = JsonConvert.DeserializeObject<List<Scrobble>>(collatedText);
-                scobbles = scobbles.Concat(collated).ToList();
+                Collation collated = JsonConvert.DeserializeObject<Collation>(collatedText);
+                collation.Scrobbles = collation.Scrobbles.Concat(collated.Scrobbles);
 
-                Console.WriteLine($"Merged {collated.Count()} previously downloaded scrobbles with newly-downloaded scrobbles.");
+                Console.WriteLine($"Merged {collated.Scrobbles.Count()} previously downloaded scrobbles");
             }
 
-            scobbles = scobbles.OrderByDescending(s => s.Timestamp).ToList();
-
-            File.WriteAllText(collatedFilePath, JsonConvert.SerializeObject(scobbles, Formatting.Indented));
+            collation.Scrobbles = collation.Scrobbles.OrderByDescending(s => s.TimestampDT);
+            collation.ScrobbleCount = collation.Scrobbles.Count();
+            collation.Date = DateTime.Now;
+            File.WriteAllText(collatedFilePath, JsonConvert.SerializeObject(collation, Formatting.Indented));
             
-            Console.WriteLine($"Saved {scobbles.Count()} scrobbles in total.");
+            Console.WriteLine($"Saved {collation.Scrobbles.Count()} scrobbles in total at path {collatedFilePath}");
 
             // todo : flesh this out
             return new Response{ Succeeded = true};

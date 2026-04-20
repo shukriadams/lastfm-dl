@@ -4,6 +4,6 @@
     "author" : "Shukri Adams <mail@shukriadams.com",
     "license": "MIT",
     "packages": [
-        "github.shukriadams.commandLineSwitches@0.1.1"
+        "github.shukriadams.commandLineSwitches@1.0.0"
     ]
 }

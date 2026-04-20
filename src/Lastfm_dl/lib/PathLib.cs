@@ -3,35 +3,19 @@ namespace Lastfm_dl
     // 
     public class PathLib
     {
-        public static string WorkPath
+        public static string SessionPath(string root)
         {
-            get
-            {
-                return "./working";
-            }
+            return Path.Join(root, "lastfm_dl", "session");
         }
 
-        public static string SessionPath
+        public static string ScrobblesPath(string root)
         {
-            get
-            {
-                return "./working/session";
-            }
+            return Path.Join(SessionPath(root), "scrobbles");
         }
 
-        public static string ScrobblesPath
+        public static string CollatedFilePath(string root)
         {
-            get
-            {
-                return "./working/session/scrobbles";
-            }
-        }
-
-        public static string CollatedFilePath
-        {
-            get{
-                return "./working/all_scrobbles.json";
-            }
+            return Path.Join(root, "lastfm_dl", "all_scrobbles.json" );
         }
     }
 }

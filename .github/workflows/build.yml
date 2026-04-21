@@ -34,7 +34,7 @@ jobs:
         - name: builds linux-arm64 binary and uploads to github
           run: | 
             cd build && chmod +x build.sh 
-            ./build.sh -b -t -p -r linux-arm64
+            ./build.sh -b -p -r linux-arm64
           env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -45,6 +45,6 @@ jobs:
         - name: builds win-arm64 binary and uploads to github
           run: | 
             cd build && chmod +x build.sh 
-            ./build.sh -b -t -p -r win-arm64
+            ./build.sh -b -p -r win-arm64
           env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}

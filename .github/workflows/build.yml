@@ -28,23 +28,23 @@ jobs:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
     linux-arm64:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04-arm
         steps:
         - uses: actions/checkout@v1
         - name: builds linux-arm64 binary and uploads to github
           run: | 
             cd build && chmod +x build.sh 
-            ./build.sh -b -p -r linux-arm64
+            ./build.sh -b -p -t -r linux-arm64
           env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
     win-arm64:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04-arm
         steps:
         - uses: actions/checkout@v1
         - name: builds win-arm64 binary and uploads to github
           run: | 
             cd build && chmod +x build.sh 
-            ./build.sh -b -p -r win-arm64
+            ./build.sh -b -p -t -r win-arm64
           env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}

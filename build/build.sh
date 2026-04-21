@@ -84,14 +84,17 @@ if [ $PUSH -eq 1 ]; then
     
     echo "uploading to github"
     repo="shukriadams/lastfm-dl"
-    name="lastfm-dl_${RUNTIME}"
-    
 
     if [ $RUNTIME = "linux-x64" ] ; then
         filename=./../publish/Lastfm_dl
+        EXTENSION=""    
+
     elif [ $RUNTIME = "win-x64" ] ; then
         filename=./../publish/Lastfm_dl.exe
+        EXTENSION=".exe"
     fi
+
+    NAME="lastfm-dl_${RUNTIME}${EXTENSION}"
 
     GH_REPO="https://api.github.com/repos/$repo"
     GH_TAGS="$GH_REPO/releases/tags/$TAG"
@@ -103,14 +106,14 @@ if [ $PUSH -eq 1 ]; then
     curl -o /dev/null -sH "$GH_TOKEN" $GH_REPO || { echo "Error : token validation failed";  exit 1; }
 
     # Read asset tags.
-    response=$(curl -sH "$GH_TOKEN" $GH_TAGS)
+    RESPONSE=$(curl -sH "$GH_TOKEN" $GH_TAGS)
 
     # Get ID of the asset based on given filename.
-    eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
-    [ "$id" ] || { echo "Error : Failed to get release id for tag: $TAG"; echo "$response" | awk 'length($0)<100' >&2; exit 1; }
+    eval $(echo "$RESPONSE" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
+    [ "$id" ] || { echo "Error : Failed to get release id for tag: $TAG"; echo "$RESPONSE" | awk 'length($0)<100' >&2; exit 1; }
 
     # upload file to github
-    GH_ASSET="https://uploads.github.com/repos/$repo/releases/$id/assets?name=$(basename $name)"
+    GH_ASSET="https://uploads.github.com/repos/$repo/releases/$id/assets?name=$(basename $NAME)"
     curl --data-binary @"$filename" -H "Authorization: token $GH_TOKEN" -H "Content-Type: application/octet-stream" $GH_ASSET
 
 fi  

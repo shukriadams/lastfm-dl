@@ -27,8 +27,7 @@ namespace Lastfm_dl
             int? forceStopPage = null
             )
         {
-            string lastPageFilePath = "./working/lastpage";
-            string incidentLogPath = "./working/incident-log.txt";
+            string lastPageFilePath = Path.Join(PathLib.SessionPath(path), "lastpage");
 
             if (pagePause < 5000)
             {

@@ -1,4 +1,4 @@
-name: builds standalone binaries
+name: builds binaries
 on: 
   push:
     tags:
@@ -13,6 +13,38 @@ jobs:
           run: | 
             cd build && chmod +x build.sh 
             ./build.sh -b -t -p -r linux-x64
+          env:
+            GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+    win-x64:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v1
+        - name: builds win-x64 binary and uploads to github
+          run: | 
+            cd build && chmod +x build.sh 
             ./build.sh -b -p -r win-x64
+          env:
+            GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+    linux-arm64:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v1
+        - name: builds linux-arm64 binary and uploads to github
+          run: | 
+            cd build && chmod +x build.sh 
+            ./build.sh -b -t -p -r linux-arm64
+          env:
+            GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+    win-arm64:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v1
+        - name: builds win-arm64 binary and uploads to github
+          run: | 
+            cd build && chmod +x build.sh 
+            ./build.sh -b -t -p -r win-arm64
           env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}

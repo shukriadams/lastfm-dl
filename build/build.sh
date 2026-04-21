@@ -5,7 +5,7 @@ set -e
 PUSH=0
 TEST=0
 BUILD=0
-ALLOWED_RUNTIMES=("linux-x64" "win-x64")
+ALLOWED_RUNTIMES=("linux-x64" "win-x64" "linux-arm64" "win-arm64")
 RUNTIME="linux-x64"
 HASH=""
 
@@ -92,6 +92,15 @@ if [ $PUSH -eq 1 ]; then
     elif [ $RUNTIME = "win-x64" ] ; then
         filename=./../publish/Lastfm_dl.exe
         EXTENSION=".exe"
+
+    elif [ $RUNTIME = "linux-arm64" ] ; then
+        filename=./../publish/Lastfm_dl
+        EXTENSION=
+
+    elif [ $RUNTIME = "win-arm64" ] ; then
+        filename=./../publish/Lastfm_dl.exe
+        EXTENSION=".exe"
+
     fi
 
     NAME="lastfm-dl_${RUNTIME}${EXTENSION}"

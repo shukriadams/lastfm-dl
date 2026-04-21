@@ -5,7 +5,7 @@ namespace Lastfm_dl
     {
         public static string SessionPath(string root)
         {
-            return Path.Join(root, "lastfm_dl", "session");
+            return Path.Join(root, "lastfm-dl", "session");
         }
 
         public static string ScrobblesPath(string root)
@@ -15,7 +15,7 @@ namespace Lastfm_dl
 
         public static string CollatedFilePath(string root)
         {
-            return Path.Join(root, "lastfm_dl", "all_scrobbles.json" );
+            return Path.Join(root, "lastfm-dl", "all_scrobbles.json" );
         }
     }
 }

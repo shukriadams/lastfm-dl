@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using Lastfm_dl.Porter_Packages.MadScience_DateTimeSpanExtensions;
 
 namespace Lastfm_dl 
 {
@@ -33,12 +34,21 @@ namespace Lastfm_dl
                 return new Response { Succeeded = true };
             }
 
-            Console.WriteLine($"Processing {collation.Scrobbles.Count()} new scrobbles, in {scrobbleEvents.Length} page(s)");
+            Console.WriteLine($"Processing {collation.Scrobbles.Count()} new scrobbles, from {scrobbleEvents.Length} page(s)");
 
             string collatedFilePath = PathLib.CollatedFilePath(path);
 
             if (appendToExisting && File.Exists(collatedFilePath))
             {
+                // backup existing collated file
+                string backupFilePath = Path.Join(
+                    Path.GetDirectoryName(collatedFilePath),
+                    $"backup-{DateTime.Now.ToLocalTime().ToIsoFSFriendly()}-{Path.GetFileName(collatedFilePath)}" 
+                );
+
+                File.Copy(collatedFilePath, backupFilePath);
+                Console.WriteLine($"Backed up existing scrobbles file to {backupFilePath}");
+
                 string collatedText = File.ReadAllText(collatedFilePath);
                 Collation collated = JsonConvert.DeserializeObject<Collation>(collatedText);
                 collation.Scrobbles = collation.Scrobbles.Concat(collated.Scrobbles);
@@ -51,7 +61,7 @@ namespace Lastfm_dl
             collation.Date = DateTime.Now;
             File.WriteAllText(collatedFilePath, JsonConvert.SerializeObject(collation, Formatting.Indented));
             
-            Console.WriteLine($"Saved {collation.Scrobbles.Count()} scrobbles in total at path {collatedFilePath}");
+            Console.WriteLine($"Saved {collation.Scrobbles.Count()} scrobbles to {collatedFilePath}");
 
             // todo : flesh this out
             return new Response{ Succeeded = true};

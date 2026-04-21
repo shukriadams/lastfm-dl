@@ -204,7 +204,10 @@ namespace Lastfm_dl
                 // write out scrobbles found on page 
                 using(WriteToSameLine writeToSameLine = new WriteToSameLine())
                 foreach(Scrobble scrobble in writePage)
-                    Console.WriteLine($"Parsed scrobble : \"{scrobble.Artist}\" - {scrobble.Name} ({scrobble.Timestamp})");
+                {
+                    writeToSameLine.Write($"Parsed scrobble : \"{scrobble.Artist}\" - {scrobble.Name} ({scrobble.Timestamp})");
+                    Thread.Sleep(100);
+                }
 
 
                 int percent = Percent.Calc(currentPage, totalPages);

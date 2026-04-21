@@ -23,7 +23,7 @@ jobs:
         - name: builds win-x64 binary and uploads to github
           run: | 
             cd build && chmod +x build.sh 
-            ./build.sh -b -p -r win-x64
+            ./build.sh -b -p -t -r win-x64
           env:
             GH_TOKEN: ${{ secrets.GH_TOKEN }}
 

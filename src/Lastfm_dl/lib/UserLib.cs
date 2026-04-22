@@ -15,6 +15,7 @@ namespace Lastfm_dl
             WebClient client = new WebClient();
 
             string paginationRaw;
+            
             try 
             {
                 paginationRaw = client.DownloadString($"https://www.last.fm/user/{user}/library");
@@ -23,12 +24,10 @@ namespace Lastfm_dl
             {
                 HttpWebResponse response = ex.Response as HttpWebResponse;
                 if (response != null && (int)response.StatusCode == 404)
-                {
                     return new UserScrobblePagesResponse { 
                         Error = UserScrobblePagesResponse.Errors.UserDoesNotfound,
                         Description = $"User \"{user}\" does not exist on last.fm"
                     };
-                }
 
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
@@ -43,30 +42,26 @@ namespace Lastfm_dl
                 };
             }
 
-
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(paginationRaw);
 
             HtmlNode pagination = htmlDoc.DocumentNode.SelectSingleNode("//ul[contains(@class, 'pagination-list')]");
             HtmlNodeCollection pages = pagination.SelectNodes(".//li[contains(@class, 'pagination-page')]");
             if (pages.Count == 0)
-            {
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
                     Description = "No pages found for user stats - exiting"
                 };
 
-            }
             var lastPagination = pages[pages.Count -1];
             if (lastPagination == null)
-            {
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
                     Description = "Failed to get last page"
                 };
-            }
 
             int totalPages = 0;
+
             try 
             {
                 totalPages = Int32.Parse(lastPagination.InnerText);
@@ -88,9 +83,8 @@ namespace Lastfm_dl
         ///
         /// 
         /// 
-        public static ScrobblesOnPageResponse GetScrobbledOnPage(string user, int page, string cookie, int pagePause)
+        public static ScrobblesOnPageResponse GetScrobblesOnPage(string user, int page, string cookie, int pagePause)
         {
-
             WebClient client = new WebClient();
             int pageRetries = 0;
             int maxPageRetries = 5;
@@ -200,6 +194,29 @@ namespace Lastfm_dl
 
             return new ScrobblesOnPageResponse{
                 Description = $"ERROR : Too many retries on page {page}, exiting"
+            };
+        }
+
+        public static CookieValidResponse IsCookieValid(string user, string cookie)
+        {
+            // trying to access any page greater than 1, if we get status  200 back we are allowed to 
+            // view page so cookie must be valid. if status is anything else (normally 302) we are being
+            // redirected to login page
+            
+            PageRequest pageRequest = new PageRequest($"https://www.last.fm/user/{user}/library?page=2");
+            pageRequest.SetCookie = cookie;
+            PageResponse response = pageRequest.Execute();
+
+            // dont bother with details of error, this is a simple request that will fail
+            // only if lastfm is unreachable
+            if (!response.Succeeded)
+                return new CookieValidResponse {
+                    Description = response.Description
+                };
+
+            return new CookieValidResponse {
+                Succeeded = true,
+                IsValid = response.StatusCode == 200
             };
         }
     }    

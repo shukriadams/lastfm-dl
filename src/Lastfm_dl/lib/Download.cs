@@ -67,7 +67,6 @@ namespace Lastfm_dl
             
 
             string cookie = string.Empty;
-
             try 
             {
                 cookie = File.ReadAllText(cookiePath);
@@ -76,6 +75,15 @@ namespace Lastfm_dl
             {
                 Console.WriteLine($"Error reading cookie at path {cookiePath}");
                 Console.WriteLine(ex.Message);
+                return;
+            }
+
+            // verify cookie - request last.fm/home, if we get a 302 instead of 200, we have been redirect to default
+            // landing page and cookie is therefore not valid
+            CookieValidResponse cookieValidResponse = UserLib.IsCookieValid(user, cookie);
+            if (!cookieValidResponse.IsValid)
+            {
+                Console.WriteLine($"Cookie string in file {cookiePath} was not accepted by last.fm");
                 return;
             }
 
@@ -142,7 +150,7 @@ namespace Lastfm_dl
 
                 string currentPageSavePath = $"{PathLib.ScrobblesPath(path)}/page_{currentPage}.json";
 
-                ScrobblesOnPageResponse scrobblesOnPageResponse = UserLib.GetScrobbledOnPage(user, currentPage, cookie, pagePause);
+                ScrobblesOnPageResponse scrobblesOnPageResponse = UserLib.GetScrobblesOnPage(user, currentPage, cookie, pagePause);
                 if (!scrobblesOnPageResponse.Succeeded)
                 {
                     Console.WriteLine(scrobblesOnPageResponse.Description);

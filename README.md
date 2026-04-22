@@ -2,7 +2,7 @@
 
 App for downloading scrobbles from Last.fm - save your play history for posterity. Data is stored as a JSON file. Works on large histories - 900K+ scrobbles, going back to 2004.
 
-Available for Linux and Windows, x86/x64 and arm64.
+
 
 ## Features
 
@@ -12,20 +12,20 @@ Available for Linux and Windows, x86/x64 and arm64.
 
 ## Install
 
-Download the latest build of lastfm-dl download from [github.com.](https://github.com/shukriadams/lastfm-dl/releases) for your OS. No dependencies are required. Place wherever you normally store binaries on your system, and add to your system PATH if desired.
+Download the latest build of lastfm-dl from [releases](https://github.com/shukriadams/lastfm-dl/releases). There is support for Linux and Windows, x86 and arm64. No dependencies are required. Save to wherever you normally store binaries on your system, and add that location to your system PATH if desired.
 
 To use, invoke directly from the terminal.
 
     lastfm-dl
 
-## Requirements
+## Authentication
 
 You need a valid cookie bound to your Last.fm user. You can copy this from any modern browser when you login to Lastfm. There are several browser plugins that can help you do this, but if you want to get the cookie directly, in your browser
 
 - Right mouse click on any Last.fm page and "inspect" the page
 - This brings up the common dev console, go to the "Network" tab. 
 - Press "F5" to reload the page, scroll to the top of the list of transfers (the first successful GET transfer status code 200), click it.
-- Find the Headers tab for that item's transfer, then the Request section under that. Copy the entire cookie string
+- Find the Headers tab for that item's transfer, then the Request section under that. Copy the entire `Set-Cookie` value.
 - Create an empty text file anywhere convenient on your system, and paste the cookie string into it and save. Remember the path to this file, you'll need it below.
 
 ## Use

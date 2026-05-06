@@ -18,7 +18,6 @@ To use, invoke directly from the terminal.
 
 ## Authentication
 
-
 To read scrobble data, Last.fm requires that you are logged. lastfm-dl doesn't require your password though, instead you provide a browser cookie string that proves you are already logged in. You can use a cookie string from any Last.fm user, so if you're worried about lastfm-dl tampering with your last.fm profile, create a throwaway profile and read your scrobbles with that to read with.
 
 You can copy the cookie string from any modern browser - there are several browser plugins that can help you do this, but if you want to get the cookie directly, in your browser

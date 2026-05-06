@@ -2,8 +2,6 @@
 
 App for downloading scrobbles from Last.fm - save your play history for posterity. Data is stored as a JSON file. Works on large histories - 900K+ scrobbles, going back to 2004.
 
-Available for Linux and Windows, x86/x64 and arm64.
-
 ## Features
 
 - Supports download resumption

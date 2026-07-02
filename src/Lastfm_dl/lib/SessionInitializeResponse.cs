@@ -9,6 +9,9 @@ namespace Lastfm_dl
 
         public Session Session  {get; set;}
 
+        /// pages processed before to get to Limit
+        public int Pages {get; set;}
+
         public bool IsSessionContinued {get; set;}
     }    
 }

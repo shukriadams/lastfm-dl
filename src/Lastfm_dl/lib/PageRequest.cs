@@ -11,6 +11,7 @@ namespace Lastfm_dl
     */
     public class PageRequest
     {
+
         #region FIELDS
 
         private string _url;
@@ -21,6 +22,7 @@ namespace Lastfm_dl
 
         #endregion
 
+
         #region PROPERTIES
 
         public int MaxRetries { get; set; } = 5;
@@ -28,9 +30,12 @@ namespace Lastfm_dl
         public string SetCookie { get; set; }
 
         public int Pause { get; set; } = 2000;
+ 
+        public bool AllowAutoRedirect { get; set; }
 
         #endregion
-        
+
+
         #region CTORS
 
         public PageRequest(string url)
@@ -40,14 +45,15 @@ namespace Lastfm_dl
 
         #endregion
 
+
         #region METHODS
 
         public PageResponse Execute()
         {
             HttpClientHandler httpClientHandler = new HttpClientHandler();
-            httpClientHandler.AllowAutoRedirect = false;
-
+            httpClientHandler.AllowAutoRedirect = this.AllowAutoRedirect;
             HttpClient client = new HttpClient(httpClientHandler);
+
             int pageRetries = 0;
         
             while(pageRetries <= this.MaxRetries)
@@ -70,17 +76,25 @@ namespace Lastfm_dl
                     }
 
                     HttpResponseMessage resp = client.Send(req);
-                    HttpStatusCode statuscode = resp.StatusCode;
+                    int statuscode = (int)resp.StatusCode;
+                    // last fm is having a moment, try again
+                    if (statuscode == 600)
+                    {
+                        Console.WriteLine("Lastfm is busy, hold on, trying again ...");
+                        pageRetries ++;
+                        Thread.Sleep(this.Pause);
+                        continue;
+                    }
+
                     using (Stream content = resp.Content.ReadAsStream())
                     {
                         raw = StreamsLib.StreamToString(content);
-                        Console.WriteLine("!" + (int)statuscode);
                         HtmlDocument htmlDoc = new HtmlDocument();
                         htmlDoc.LoadHtml(raw);
 
                         return new PageResponse{
                             Body = htmlDoc,
-                            StatusCode = (int)statuscode, 
+                            StatusCode = statuscode, 
                             BodyRaw = raw,
                             Succeeded = true
                         };
@@ -88,8 +102,6 @@ namespace Lastfm_dl
                 }
                 catch (WebException ex)
                 {
-                    // behold the almight overcomplicated shitness that is http error handling in c#
-
                     HttpWebResponse response = ex.Response as HttpWebResponse;
                     if (response == null)
                     {

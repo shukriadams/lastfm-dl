@@ -18,7 +18,7 @@ To use, invoke directly from the terminal.
 
 ## Authentication
 
-To read scrobble data, Last.fm requires that you are logged. lastfm-dl doesn't require your password though, instead you provide a browser cookie string that proves you are already logged in. You can use a cookie string from any Last.fm user, so if you're worried about lastfm-dl tampering with your last.fm profile, create a throwaway profile and read your scrobbles with that to read with.
+To access your scrobbles, Last.fm requires that you are logged in. lastfm-dl doesn't require your password though, instead you provide a browser cookie string that proves you are already logged in. You can use a cookie string from any Last.fm user, so if you're worried about lastfm-dl tampering with your last.fm profile, create a throwaway profile and read your scrobbles with that to read with.
 
 You can copy the cookie string from any modern browser - there are several browser plugins that can help you do this, but if you want to get the cookie directly, in your browser
 
@@ -50,21 +50,25 @@ There are several optional arguments for downloading.
 
 ### Save path
 
-Set another path to save your scrobbles to with
+By default lastfm-dl works in your home directory, where it will create a directory `lastfm-dl`. Your scrobbles and temporary files will be created here. 
 
-    lastfm-dl --save <path> ...
+To use another path to save your scrobbles to with
+
+    lastfm-dl --save <path> ...<other args>...
+
+Note that regardless of which path you set, a directory `lastfm-dl` will always be created.
 
 ### New session
 
 By default, lastfm-dl supports download resumption, this is done as part of a session, and a session persists until all your existing scrobbles have been successfuly downloaded. If for some reason you want to abandon an existing session and start from scratch, use the clear switch
 
-    lastfm-dl --clear ...
+    lastfm-dl --clear ...<other args>...
 
 ### Session and page count
 
 Lastfm-dl download resumption relies on lastfm's scrobble paging system, but page content changes as you scrobble new plays. If you try to resume a download while scrobbling, you could get a warning that your page count has changed since you started the session. You can ignore this warning with the ignore flag.
 
-    lastfm-dl --ignore ...
+    lastfm-dl --ignore ...<other args>...
 
 Note that you risk losing some of your history this way, the amount lost dependent on how many plays saved since last time. The alternative to ignoring the error is to start a new session from scratch (using the --clear flag), or not to scrobble at all while you are downloading your history.
 

@@ -1,3 +1,4 @@
+using System;
 using Lastfm_dl.Porter_Packages.Madscience_CommandLineSwitches;
 
 namespace Lastfm_dl
@@ -8,18 +9,28 @@ namespace Lastfm_dl
         {
             try 
             {
+                Console.WriteLine("Lastfm-dl");
+
+                // look for dev args file
+                string devArgsPath = Path.GetFullPath("./.args");
+                if (File.Exists(devArgsPath))
+                {
+                    string devArgs = File.ReadAllText(devArgsPath);
+                    args = args.Concat(devArgs.Split(" ")).ToArray();
+                    Console.WriteLine($".args found at {devArgsPath}, overriding with values \"{String.Join(" ", args)}\"");
+                }
+
                 CommandLineSwitches switches = new CommandLineSwitches();
                 
                 switches.Add(new Argument("version", typeof(string)) { LongName = "version", ShortName = "v" });
+                switches.Add(new Argument("init", typeof(string)) { LongName = "init", ShortName = "i" });
                 switches.Add(new Argument("download", typeof(string)) { LongName = "download", ShortName = "d" });
                 switches.Add(new Argument("user", typeof(string)) { LongName = "user", ShortName = "u" });
                 switches.Add(new Argument("cookie", typeof(string)) { LongName = "cookie", ShortName = "c" });
                 switches.Add(new Argument("limit", typeof(int?)) { LongName = "limit", ShortName = "l" });
-                switches.Add(new Argument("clear", typeof(bool)) { LongName = "clear"});
-                switches.Add(new Argument("save", typeof(string)) { LongName = "save", ShortName = "s", DefaultValue = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) });
+                switches.Add(new Argument("clear", typeof(bool)) { LongName = "clear" });
+                switches.Add(new Argument("save", typeof(string)) { LongName = "save", ShortName = "s", DefaultValue = PathLib.WorkingPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) });
                 switches.Add(new Argument("ignore", typeof(bool)) { LongName = "ignore" });
-
-                Console.WriteLine("Lastfm-dl");
 
                 BindResponse bindResponse = switches.Bind(
                     args, 
@@ -28,14 +39,18 @@ namespace Lastfm_dl
                 if (!bindResponse.Succeeded)
                 {
                     Console.WriteLine($"Error :\n{bindResponse.Description}");
-                    System.Environment.Exit(1);
+                    Environment.Exit(1);
                 }
-
+                
+                // cookiepath is by default inside save dir, but can be directly overriden
+                string cookiePath = switches.IsSet("cookie") ? switches.Get<string>("cookie") : Path.Join(switches.Get<string>("save"), "cookie");
                 string command = null;
                 if (switches.IsSet("version"))
                     command = "version";
                 else if (switches.IsSet("download"))
                     command = "download";
+                else if (switches.IsSet("init"))
+                    command = "init";
 
                 if (command == null)
                 {
@@ -49,25 +64,33 @@ namespace Lastfm_dl
                     version.Work();
                 }
 
+                if (command == "init")
+                {
+                    Initialize init = new Initialize();
+                    init.Work(
+                        workPath : switches.Get<string>("save"),
+                        cookiePath : cookiePath);
+                }
+
                 if (command == "download")
                 {
                     if (!switches.IsSet("user"))
                     {
                         Console.WriteLine($"Error: User required. Use --user|-u <lastfm username>");
-                        System.Environment.Exit(1);
+                        Environment.Exit(1);
                     }
 
-                    if (!switches.IsSet("cookie"))
+                    if (String.IsNullOrEmpty(cookiePath))
                     {
                         Console.WriteLine($"Error: Cookie file path required. Use --cookie|-c <lastfm username>. Get cookie by logging onto Lastfm in your browser, then extracting cookie header.");
-                        System.Environment.Exit(1);
+                        Environment.Exit(1);
                     }
 
                     Download download = new Download();
                     download.Work(
                         user : switches.Get<string>("user"), 
-                        cookiePath : switches.Get<string>("cookie"),
-                        path : switches.Get<string>("save"),
+                        cookiePath : cookiePath,
+                        workPath : switches.Get<string>("save"),
                         forceStopPage : switches.Get<int?>("limit"),
                         clearSession : switches.IsSet("clear"),
                         ignorePageCount : switches.IsSet("ignore"));

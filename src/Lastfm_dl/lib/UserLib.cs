@@ -11,39 +11,30 @@ namespace Lastfm_dl
         /// </summary>
         public static UserScrobblePagesResponse GetScrobblePages(string user)
         {
-            
-            WebClient client = new WebClient();
 
+            PageRequest httpRequest = new PageRequest($"https://www.last.fm/user/{user}/library");
             string paginationRaw;
             
-            try 
-            {
-                paginationRaw = client.DownloadString($"https://www.last.fm/user/{user}/library");
-            }
-            catch(WebException ex)
-            {
-                HttpWebResponse response = ex.Response as HttpWebResponse;
-                if (response != null && (int)response.StatusCode == 404)
-                    return new UserScrobblePagesResponse { 
-                        Error = UserScrobblePagesResponse.Errors.UserDoesNotfound,
-                        Description = $"User \"{user}\" does not exist on last.fm"
-                    };
-
+            PageResponse pageRespone = httpRequest.Execute();
+            if (!pageRespone.Succeeded)
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
-                    Description = ex.Message
+                    Description = pageRespone.Description
                 };
-            }
-            catch(Exception ex)
-            {
+
+            if (pageRespone.StatusCode == 404)
+                return new UserScrobblePagesResponse { 
+                    Error = UserScrobblePagesResponse.Errors.UserDoesNotfound,
+                    Description = $"User \"{user}\" does not exist on last.fm"
+                };
+
+            if (pageRespone.StatusCode != 200)
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
-                    Description = ex.Message
+                    Description = $"Last fm returned error code \"{pageRespone.StatusCode}\"\n{pageRespone.Body.DocumentNode.InnerText} "
                 };
-            }
 
-            HtmlDocument htmlDoc = new HtmlDocument();
-            htmlDoc.LoadHtml(paginationRaw);
+            HtmlDocument htmlDoc = pageRespone.Body;
 
             HtmlNode pagination = htmlDoc.DocumentNode.SelectSingleNode("//ul[contains(@class, 'pagination-list')]");
             HtmlNodeCollection pages = pagination.SelectNodes(".//li[contains(@class, 'pagination-page')]");
@@ -197,27 +188,5 @@ namespace Lastfm_dl
             };
         }
 
-        public static CookieValidResponse IsCookieValid(string user, string cookie)
-        {
-            // trying to access any page greater than 1, if we get status  200 back we are allowed to 
-            // view page so cookie must be valid. if status is anything else (normally 302) we are being
-            // redirected to login page
-            
-            PageRequest pageRequest = new PageRequest($"https://www.last.fm/user/{user}/library?page=2");
-            pageRequest.SetCookie = cookie;
-            PageResponse response = pageRequest.Execute();
-
-            // dont bother with details of error, this is a simple request that will fail
-            // only if lastfm is unreachable
-            if (!response.Succeeded)
-                return new CookieValidResponse {
-                    Description = response.Description
-                };
-
-            return new CookieValidResponse {
-                Succeeded = true,
-                IsValid = response.StatusCode == 200
-            };
-        }
     }    
 }

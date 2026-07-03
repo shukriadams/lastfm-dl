@@ -18,7 +18,7 @@ namespace Lastfm_dl
 
         public static string SessionPath(string workPath)
         {
-            if (Path.GetFileName(workPath) != "lastfm-dl")
+            if (Path.GetFileName(workPath) != "lastfmdl")
                 throw new Exception($"Unsafe workingpath detected : {workPath}");
 
             return Path.Join(workPath, "session");
@@ -26,7 +26,7 @@ namespace Lastfm_dl
 
         public static string ScrobblesPath(string workPath)
         {
-            if (Path.GetFileName(workPath) != "lastfm-dl")
+            if (Path.GetFileName(workPath) != "lastfmdl")
                 throw new Exception($"Unsafe workingpath detected : {workPath}");
 
             return Path.Join(SessionPath(workPath), "scrobbles");
@@ -34,10 +34,10 @@ namespace Lastfm_dl
 
         public static string CollatedFilePath(string workPath)
         {
-            if (Path.GetFileName(workPath) != "lastfm-dl")
+            if (Path.GetFileName(workPath) != "lastfmdl")
                 throw new Exception($"Unsafe workingpath detected : {workPath}");
 
-            return Path.Join(workPath, "all_scrobbles.json" );
+            return Path.Join(workPath, "scrobbles.json" );
         }
 
         /// <summary>
@@ -53,18 +53,19 @@ namespace Lastfm_dl
             string workPathAbsolute = Path.GetFullPath(workPath);
             string pathParent = Path.GetDirectoryName(workPathAbsolute);
 
-            // verify dir exists
-            if (!Directory.Exists(workPath))
-                return new Response{
-                    Description = $"Working directory  \"{workPath}\" does not exist."
-                };                
-
             if (File.Exists(workPath))
                 return new Response{
                     Description = $"\"{workPath}\" is a file, it must be a directory."
                 };                
 
-             return new Response {
+            // always create work dir if not exists
+            if (!Directory.Exists(workPath))
+            {
+                Directory.CreateDirectory(workPath);
+                Console.WriteLine($"Created work path \"{workPath}\"");
+            }
+
+            return new Response {
                 Succeeded = true,
                 Description = $"Working directory verified."
             };

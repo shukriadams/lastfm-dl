@@ -173,7 +173,8 @@ namespace Lastfm_dl
 
                     foreach(Scrobble scrobble in scrobblesOnPageResponse.Scrobbles)
                     {
-                        if (sessionInitializeResponse.Limit.Artist == scrobble.Artist &&
+                        if (sessionInitializeResponse.Limit != null &&
+                            sessionInitializeResponse.Limit.Artist == scrobble.Artist &&
                             sessionInitializeResponse.Limit.Name == scrobble.Name &&
                             sessionInitializeResponse.Limit.Timestamp == scrobble.Timestamp){
                                 limitReached = true;

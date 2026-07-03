@@ -34,15 +34,11 @@ namespace Lastfm_dl
             }
 
             // print current session if any
-            if (sessionResponse.Session == null)
-                Console.WriteLine("no existing session found, a new session will be created when you start downloading scrobbles");
-            else 
+            if (sessionResponse.Session != null)
                 Console.WriteLine($"found an existing session started {sessionResponse.Session.Started}, this will be continued on next download");
 
             // print current data on disk if any
-            if (sessionResponse.Collation == null)
-                Console.WriteLine("no local scrobble file found");
-            else 
+            if (sessionResponse.Collation != null)
                 Console.WriteLine($"existing scrobble file found for user {sessionResponse.Collation.User}, {sessionResponse.Collation.ScrobbleCount} scrobbles already downloaded");
         }
     }

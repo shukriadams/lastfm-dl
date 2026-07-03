@@ -41,9 +41,10 @@ namespace Lastfm_dl
                     Console.WriteLine($"Error :\n{bindResponse.Description}");
                     Environment.Exit(1);
                 }
-                
+
                 // cookiepath is by default inside save dir, but can be directly overriden
                 string cookiePath = switches.IsSet("cookie") ? switches.Get<string>("cookie") : Path.Join(switches.Get<string>("save"), "cookie");
+
                 string command = null;
                 if (switches.IsSet("version"))
                     command = "version";

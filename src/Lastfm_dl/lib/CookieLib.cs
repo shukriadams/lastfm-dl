@@ -10,7 +10,7 @@ namespace Lastfm_dl
             // verify cookie file exists
             if (!File.Exists(cookiePath))
                 return new CookieValidResponse{
-                    Description = $"ERROR : Cookie file not found at expected path \"{cookiePath}\""
+                    Description = $"WARNING : cookie not found at expected location \"{cookiePath}\", scrobbles cannot be downloaded without this. See setup instructions at https://github.com/shukriadams/lastfm-dl"
                 };
             
             // read cookie file 

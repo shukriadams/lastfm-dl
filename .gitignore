@@ -6,3 +6,4 @@ src/Lastfm_dl/.tmp
 src/Lastfm_dl/user
 src/Lastfm_dl/.cookie
 publish
+.args

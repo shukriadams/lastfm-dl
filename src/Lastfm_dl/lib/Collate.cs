@@ -6,7 +6,7 @@ namespace Lastfm_dl
 {
     public class Collate
     {
-        public Response Work(bool appendToExisting, string path)
+        public Response Work(bool appendToExisting, string user, int pages, string path)
         {
             string[] scrobbleEvents = Directory.GetFiles(PathLib.ScrobblesPath(path), "*.json", SearchOption.AllDirectories);
             if (scrobbleEvents.Length == 0)
@@ -57,6 +57,8 @@ namespace Lastfm_dl
             }
 
             collation.Scrobbles = collation.Scrobbles.OrderByDescending(s => s.TimestampDT);
+            collation.User = user;
+            collation.Pages = pages;
             collation.ScrobbleCount = collation.Scrobbles.Count();
             collation.Date = DateTime.Now;
             File.WriteAllText(collatedFilePath, JsonConvert.SerializeObject(collation, Formatting.Indented));

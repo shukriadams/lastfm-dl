@@ -1,6 +1,7 @@
 namespace Lastfm_dl 
 {
-    public class WriteToSameLine : IDisposable
+    /// Writes to console on a single line
+    public class ConsoleWriteSingleLine : IDisposable
     {
         private int length = 0;
 

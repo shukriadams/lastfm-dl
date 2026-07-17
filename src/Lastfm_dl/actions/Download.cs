@@ -18,88 +18,87 @@ namespace Lastfm_dl
         public void Work(
             string user, 
             string cookiePath, 
-            string path,
+            string workPath,
             int pagePause = 5000,
             bool ignorePageCount = false,
             bool additive = true,
             bool clearSession = false,
             int? forceStartPage = null, 
-            int? forceStopPage = null
-            )
+            int? forceStopPage = null)
         {
-            string lastPageFilePath = Path.Join(PathLib.SessionPath(path), "lastpage");
-
             if (pagePause < 5000)
             {
                 Console.WriteLine($"Pause cannot be less than 5 seconds - please be polite and don't hammer last.fm. ");
                 return;
             }
 
-            // verify cookie state
-            if (!File.Exists(cookiePath))
+            // verify directory structure
+            Response pathSetupResponse = PathLib.SetupWorkDirectory(workPath);
+            if (!pathSetupResponse.Succeeded)
             {
-                Console.WriteLine($"Cookie file not found at path {cookiePath}");
+                Console.WriteLine(pathSetupResponse.Description);
                 return;
             }
+            Console.WriteLine("Directory structure passed. validation passed");
 
-            // verify path parent exists, and that path is not a file
-            if (path == string.Empty)
+
+            // validate cookie
+            CookieValidResponse cookieValidResponse = CookieLib.IsCookieValid(cookiePath);
+            if (!cookieValidResponse.IsValid)
             {
-                Console.WriteLine($"Path cannot be empty");
+                Console.WriteLine(cookieValidResponse.Description);
                 return;
             }
+            Console.WriteLine("Cookie validation passed");
 
-            // convert to absolute path
-            string pathAbsolute = Path.GetFullPath(path);
-            string pathParent = Path.GetDirectoryName(pathAbsolute);
 
-            if (!Directory.Exists(pathParent))
-            {
-                Console.WriteLine($"Directory \"{path}\" cannot be created because \"{pathParent}\" does not exist.");
-                return;                
-            }
-
-            if(File.Exists(pathAbsolute))
-            {
-                Console.WriteLine($"{path} is a file, this must be a directory.");
-                return;
-            }
-            
-
-            string cookie = string.Empty;
-
-            try 
-            {
-                cookie = File.ReadAllText(cookiePath);
-            }
-            catch(Exception ex)
-            {
-                Console.WriteLine($"Error reading cookie at path {cookiePath}");
-                Console.WriteLine(ex.Message);
-                return;
-            }
-
-            // get nr of user pages, this also verifies user exists
+            // get nr of user pages, this also verifies that user exists on lastfm. Note that we need user 
+            // page count to process session
             UserScrobblePagesResponse pagesLookupResponse = UserLib.GetScrobblePages(user);
             if (!pagesLookupResponse.Succeeded)
             {
                 Console.WriteLine(pagesLookupResponse.Description);
                 return;
             }
+            Console.WriteLine("Queried user history");
 
-            // determine state of current session, if any
+            // create session or update if exists already
             SessionLib sessionLib = new SessionLib();
             SessionInitializeResponse sessionInitializeResponse = sessionLib.Initialize(
                 currentPagesCount : pagesLookupResponse.Pages,
                 ignorePagesMismatch : ignorePageCount,
-                path: path,
+                user: user,
+                path: workPath,
                 clearSession : clearSession);
-
+            
             if (!sessionInitializeResponse.Succeeded)
             {
                 Console.WriteLine($"ERROR : Session init failed {sessionInitializeResponse.Description}");
                 return;
             }
+            Console.WriteLine("Session initialized");
+
+
+            string sessionPath = PathLib.SessionPath(workPath);
+            
+
+            // If continuing a session, we continue at the last processed page number. If the user has new 
+            // scrobbles the page nr continued from will not be on the same point in the user's history, resulting in lost 
+            // scrobbles. Warn user of that.
+            int pagesWhenSessionCreated = sessionInitializeResponse.Session.TotalPages;
+            if (!ignorePageCount && pagesWhenSessionCreated != pagesLookupResponse.Pages)
+            {
+                Console.WriteLine($"Current session was started when lastfm total scrobble playcount was {pagesWhenSessionCreated}, but current total page count is {pagesLookupResponse.Pages}. Aborting download. Use --ignore to ignore this error, or --clear to start a new session. Note that you the greater the page mismatch, the more plays you will lose from your history.");
+                return;
+            }
+                
+                
+
+            string warning = string.Empty;
+            if (pagesWhenSessionCreated != pagesLookupResponse.Pages)
+                warning = $"Current session was started when lastfm total scrobble playcount was {pagesWhenSessionCreated}, but current total page count is {pagesLookupResponse.Pages}. You have opted to ignore this mismatch. The greater the page mismatch, the more plays you will lose from your history.";
+
+
 
             if (!string.IsNullOrEmpty(sessionInitializeResponse.Warning))
                 Console.WriteLine(sessionInitializeResponse.Warning);
@@ -126,11 +125,16 @@ namespace Lastfm_dl
             if (forceStopPage.HasValue)
                 Console.WriteLine($"Forced stop page set to {forceStopPage.Value}, will not process more than this.");
 
-            Console.WriteLine($"your data will be downloaded in path \"{pathAbsolute}\"");
+            Console.WriteLine($"your data will be downloaded in path \"{workPath}\"");
+
 
             int updatedScrobbles = 0;
             Scrobble lastNewScrobble = null;
             Scrobble firstNewScrobble = null;
+            bool isLimitMode = sessionInitializeResponse.Limit != null;
+            int expectedPagesToProcess = sessionInitializeResponse.Pages == 0 ? totalPages : totalPages - sessionInitializeResponse.Pages;
+            if (sessionInitializeResponse.Session != null)
+                expectedPagesToProcess = expectedPagesToProcess - sessionInitializeResponse.Session.CurrentPage;
 
             while(currentPage < totalPages)
             {
@@ -140,9 +144,9 @@ namespace Lastfm_dl
                     break;
                 }
 
-                string currentPageSavePath = $"{PathLib.ScrobblesPath(path)}/page_{currentPage}.json";
+                string currentPageSavePath = Path.Join(PathLib.ScrobblesPath(workPath), $"page_{currentPage}.json");
 
-                ScrobblesOnPageResponse scrobblesOnPageResponse = UserLib.GetScrobbledOnPage(user, currentPage, cookie, pagePause);
+                ScrobblesOnPageResponse scrobblesOnPageResponse = UserLib.GetScrobblesOnPage(user, currentPage, cookieValidResponse.Cookie, pagePause);
                 if (!scrobblesOnPageResponse.Succeeded)
                 {
                     Console.WriteLine(scrobblesOnPageResponse.Description);
@@ -153,18 +157,23 @@ namespace Lastfm_dl
                 // addative downloading is done
                 List<Scrobble> writePage = new List<Scrobble>();
                 bool limitReached = false;
-                
-                if (sessionInitializeResponse.Limit == null)
+
+                // process scrobbles on current page
+                if (isLimitMode == null)
                 {
+                    // not doing limit mode, use all scrobbles on page
                     writePage = scrobblesOnPageResponse.Scrobbles.ToList();
                 } 
                 else
                 {
+                    // check for limit - limit is the last scrobble stored in the aleady-saved scrobble file on disk.
+                    // if we are downloading only latest scrobbles, we look for and stop at limit
                     scrobblesOnPageResponse.Scrobbles = scrobblesOnPageResponse.Scrobbles.OrderByDescending(s => s.TimestampDT).ToList();
 
                     foreach(Scrobble scrobble in scrobblesOnPageResponse.Scrobbles)
                     {
-                        if (sessionInitializeResponse.Limit.Artist == scrobble.Artist &&
+                        if (sessionInitializeResponse.Limit != null &&
+                            sessionInitializeResponse.Limit.Artist == scrobble.Artist &&
                             sessionInitializeResponse.Limit.Name == scrobble.Name &&
                             sessionInitializeResponse.Limit.Timestamp == scrobble.Timestamp){
                                 limitReached = true;
@@ -180,28 +189,20 @@ namespace Lastfm_dl
                     }
                 }
  
+
                 try
                 {
                     File.WriteAllText(currentPageSavePath, JsonConvert.SerializeObject(writePage, Formatting.Indented));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERROR : failed to write scrobble data for page {lastPageFilePath}\n{ex.Message}");
+                    Console.WriteLine($"ERROR : failed to write scrobble data\n{ex.Message}");
                     return;
                 }
 
-                try 
-                {
-                    File.WriteAllText(lastPageFilePath, currentPage.ToString());
-                }
-                catch(Exception ex)
-                {
-                    Console.WriteLine($"ERROR : failed to update last processed page file at path {lastPageFilePath}\n{ex.Message}");
-                    return;
-                }
 
-                // write out scrobbles found on page 
-                using(WriteToSameLine writeToSameLine = new WriteToSameLine())
+                // write out scrobbles found on this page 
+                using(ConsoleWriteSingleLine writeToSameLine = new ConsoleWriteSingleLine())
                 foreach(Scrobble scrobble in writePage)
                 {
                     writeToSameLine.Write($"Parsed scrobble : \"{scrobble.Artist}\" - {scrobble.Name} ({scrobble.Timestamp})");
@@ -209,8 +210,8 @@ namespace Lastfm_dl
                 }
 
 
-                int percent = Percent.Calc(currentPage, totalPages);
-                Console.WriteLine($"Processed page {currentPage}/{totalPages} ({percent}%), pausing {pagePause} ms");
+                int percent = Percent.Calc(currentPage, expectedPagesToProcess);
+                Console.WriteLine($"Processed page {currentPage}/{expectedPagesToProcess} ({percent}%), pausing {pagePause} ms");
 
                 if (limitReached){
                     Console.WriteLine($"Reached previously downloaded scrobble {sessionInitializeResponse.Limit}, stopping here. Imported {updatedScrobbles} new scrobbles.");
@@ -224,13 +225,17 @@ namespace Lastfm_dl
                 currentPage ++;
                 sessionInitializeResponse.Session.CurrentPage = currentPage;
                 sessionLib.Update(
-                    path : path,
+                    path : workPath,
                     session : sessionInitializeResponse.Session);
             }
 
             // collate
             Collate collate = new Collate();
-            Response collateResponse = collate.Work(additive, path);
+            Response collateResponse = collate.Work(appendToExisting: additive, 
+                user: user, 
+                pages : totalPages,
+                path : workPath);
+
             if (!collateResponse.Succeeded)
             {
                 Console.WriteLine($"ERROR : {collateResponse.Description}");
@@ -238,7 +243,7 @@ namespace Lastfm_dl
             }
 
             // wipe session
-            sessionLib.Remove(path);
+            sessionLib.Remove(workPath);
 
             Console.WriteLine("Finished downloading.");
         }

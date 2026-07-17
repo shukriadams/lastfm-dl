@@ -5,6 +5,9 @@ namespace Lastfm_dl
 {
     public class SessionLib
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public void Update(Session session, string path)
         {
             // write session back to disk
@@ -12,7 +15,6 @@ namespace Lastfm_dl
 
             try
             {
-
                 File.WriteAllText(sessionFilePath, JsonConvert.SerializeObject(session, Formatting.Indented));
             }
             catch (Exception ex)
@@ -22,51 +24,76 @@ namespace Lastfm_dl
             }
         }
 
+        /// <summary>
+        /// Init
+        /// </summary>
         public SessionInitializeResponse Initialize(
             int currentPagesCount, 
+            string user,
             bool ignorePagesMismatch,
             bool clearSession,
             string path)
         {
-            string workingPath = PathLib.SessionPath(path);
+            string sessionPath = PathLib.SessionPath(path);
 
-            if (clearSession && Directory.Exists(workingPath))
+            // delete current session if it exists
+            if (clearSession && Directory.Exists(sessionPath))
             {
                 try 
                 {
-                    Directory.Delete(workingPath, true);
-                    Console.WriteLine($"Clearing existing session dir {workingPath}.");
+                    Directory.Delete(sessionPath, true);
+                    Console.WriteLine($"Clearing existing session dir {sessionPath}.");
                 }
                 catch(Exception ex)
                 {
                     return new SessionInitializeResponse
                     {
-                        Description = $"Error deleting dir {workingPath} : {ex.Message}"
+                        Description = $"Error deleting dir {sessionPath} : {ex.Message}"
                     };
                 }
             }
 
-            if (!Directory.Exists(workingPath))
+            // create a new session directory if needed
+            if (!Directory.Exists(sessionPath))
             {
                 try 
                 {
-                    Directory.CreateDirectory(workingPath);
+                    Directory.CreateDirectory(sessionPath);
                     Directory.CreateDirectory(PathLib.ScrobblesPath(path));
-                    Console.WriteLine($"Created session dir {workingPath}.");
+                    Console.WriteLine($"Created session dir {sessionPath}.");
                 }
                 catch(Exception ex)
                 {
                     return new SessionInitializeResponse
                     {
-                        Description = $"Error creating dir {workingPath} : {ex.Message}"
+                        Description = $"Error creating dir {sessionPath} : {ex.Message}"
                     };
                 }
             }
 
+            // create scrobbles dir
+            string scrobblesDir = PathLib.ScrobblesPath(path);
+            if (!Directory.Exists(scrobblesDir))
+            {
+                try 
+                {
+                    Directory.CreateDirectory(scrobblesDir);
+                    Console.WriteLine($"Created session scrobbles dir {scrobblesDir}.");
+                }
+                catch(Exception ex)
+                {
+                    return new SessionInitializeResponse
+                    {
+                        Description = $"Error creating dir {scrobblesDir} : {ex.Message}"
+                    };
+                }
+            }
+
+            // read session json file on disk, if it exists, This contains info about the session.
             Session session;
             bool isSessionContinued = false;
-            string sessionFilePath = Path.Join(workingPath, "session.json");
-
+            string sessionFilePath = Path.Join(sessionPath, "session.json");
+    
             try 
             {
                 if (File.Exists(sessionFilePath))
@@ -92,17 +119,15 @@ namespace Lastfm_dl
                 };
             }
 
-            int pagesWhenSessionCreated = session.TotalPages;
-            if (!ignorePagesMismatch && pagesWhenSessionCreated != currentPagesCount)
-                return new SessionInitializeResponse{
-                    Description = $"Current session was started when lastfm total scrobble playcount was {pagesWhenSessionCreated}, but current total page count is {currentPagesCount}. Aborting download. Use --ignore to ignore this error, or --clear to start a new session. Note that you the greater the page mismatch, the more plays you will lose from your history."
+            // ensure user in session matches current user
+            if (!string.IsNullOrEmpty(session.User) && session.User != user)
+                return new SessionInitializeResponse
+                {
+                    Description = $"The existing session was created for a different user {session.User}. Remove this session first before switching users."
                 };
 
-            string warning = string.Empty;
-            if (pagesWhenSessionCreated != currentPagesCount)
-                warning = $"Current session was started when lastfm total scrobble playcount was {pagesWhenSessionCreated}, but current total page count is {currentPagesCount}. You have opted to ignore this mismatch. The greater the page mismatch, the more plays you will lose from your history.";
 
-            // write session back to disk
+            // write updated session back to disk
             try
             {
                 File.WriteAllText(sessionFilePath, JsonConvert.SerializeObject(session, Formatting.Indented));
@@ -118,26 +143,77 @@ namespace Lastfm_dl
             // file and set that as limit
             string collatedfile = PathLib.CollatedFilePath(path);
             Scrobble limit = null;
+            int pages = 0;
+
             if (File.Exists(collatedfile))
             {
                 string fileContent = File.ReadAllText(collatedfile);
                 Collation collation = JsonConvert.DeserializeObject<Collation>(fileContent);
+                pages = collation.Pages;
                 limit = collation.Scrobbles.OrderByDescending(s => s.TimestampDT).FirstOrDefault();
             }
 
             return new SessionInitializeResponse {
-                Warning = warning,
                 Succeeded = true,
                 Limit = limit,
+                Pages = pages,
                 IsSessionContinued = isSessionContinued,
                 Session = session
             };
         }
 
-        /// Wipes current session
-        public Response Remove(string root)
+        /// <summary>
+        /// 
+        /// </summary>
+        public SessionGetResponse GetSession(string workpath)
         {
-            string sessionDirectory = PathLib.SessionPath(root);
+    
+            string sessionFilePath = Path.Join(PathLib.SessionPath(workpath), "session.json");
+            Session session = null;
+            
+            try 
+            {
+                if (File.Exists(sessionFilePath))
+                    session = JsonConvert.DeserializeObject<Session>(File.ReadAllText(sessionFilePath));
+
+            }
+            catch(Exception ex)
+            {
+                return new SessionGetResponse
+                {
+                    Description = $"Error reading exsting session file {sessionFilePath} : {ex.Message}"
+                };
+            }
+
+            string collationFilePath = PathLib.CollatedFilePath(workpath);
+            Collation collation = null;
+
+            try 
+            {
+                if (File.Exists(collationFilePath))
+                    collation = JsonConvert.DeserializeObject<Collation>(File.ReadAllText(collationFilePath));
+            }
+            catch(Exception ex)
+            {
+                return new SessionGetResponse
+                {
+                    Description = $"Error reading exsting session file {sessionFilePath} : {ex.Message}"
+                };
+            }
+
+            return new SessionGetResponse {
+                Succeeded = true,
+                Collation = collation,
+                Session = session
+            };
+        }
+
+        /// <summary>
+        /// Wipes current session
+        /// </summary>
+        public Response Remove(string workPath)
+        {
+            string sessionDirectory = PathLib.SessionPath(workPath);
             Directory.Delete(sessionDirectory, true);
 
             return new Response {

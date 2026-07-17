@@ -4,45 +4,77 @@ App for downloading scrobbles from Last.fm - save your play history for posterit
 
 ## Features
 
-- Supports download resumption
-- Supports updating your existing download with newer scrobbles
+- Download interruption - stop and resume downloads until your entire history is saved.
+- Updated downloads - add new scrobbles to an existing full history download.
 - Will not hammer last.fm, mostly avoiding rate limits.
 
 ## Install
 
-Download the latest build of lastfm-dl from [releases](https://github.com/shukriadams/lastfm-dl/releases). There is support for Linux and Windows, x86 and arm64. No dependencies are required. Save to wherever you normally store binaries on your system, and add that location to your system PATH if desired.
+Download the latest build of lastfm-dl from [releases](https://github.com/shukriadams/lastfm-dl/releases). Linux and Windows, x86 and arm64 are supported. No dependencies are required. Save to wherever you normally store binaries on your system. If on Linux, make the file executable (chmod +x). Add the file location to your system PATH if desired.
 
-To use, invoke directly from the terminal.
+This is a terminal app, run it with
 
-    lastfm-dl
+    lastfm-dl 
+
+By default, lastfm-dl uses the path ~/lastfmdl, and your scrobbles are saved to ~/lastfmdl/scrobbles.json  You can specify a different location if desired, but all examples below assume the default location.
+
+It's a good idea to initialize with
+
+    lastfm-dl --init
+
+This will automatically create your save location directory, and check the status of your connection to last.fm.
 
 ## Authentication
 
-To read scrobble data, Last.fm requires that you are logged. lastfm-dl doesn't require your password though, instead you provide a browser cookie string that proves you are already logged in. You can use a cookie string from any Last.fm user, so if you're worried about lastfm-dl tampering with your last.fm profile, create a throwaway profile and read your scrobbles with that to read with.
+To read scrobbles, last.fm requires that you are logged in to their website in a browser. You can however use any valid last.fm account to do this. 
 
-You can copy the cookie string from any modern browser - there are several browser plugins that can help you do this, but if you want to get the cookie directly, in your browser
+lastfm-dl doesn't need your last.fm password, only the browser cookie that is generated when you log in. A cookie is some text stored in your browser, and there are several ways to get it, two of which are explained below. Note that all examples below are for Firefox. 
 
-- Right mouse click on any Last.fm page and "inspect" the page
-- This brings up the common dev console, go to the "Network" tab. 
-- Press "F5" to reload the page, scroll to the top of the list of transfers (the first successful GET transfer status code 200), click it.
-- Find the Headers tab for that item's transfer, then the Request section under that. Copy the entire `Set-Cookie` value.
-- Create an empty text file anywhere convenient on your system, and paste the cookie string into it and save. Remember the path to this file, you'll need it below.
+### Plugin 
+
+The simplest way to get your cookie with a cookie reading plugin.
+
+- install [cookie-editor](https://addons.mozilla.org/en-US/firefox/addon/cookie-editor), allow cookie-editor to pin to your taskbar.
+- log in to last.fm.
+- while viewing any last.fm page click the cookie-editor icon in your taskbar.
+- in the lower right corner of the cookie-editor panel click the "export" button, and select "header string".
+- create a text file at `~/lastfmdl/cookie` (no extension), paste the cookie string into it and save. 
+
+### Manually
+
+If you don't want to use a plugin, you can get the cookie string as follows
+
+- Log in to Last.fm in your browser, go to https://last.fm, your current page address should be https://last.fm/home
+- Access the develop console (Ctrl-Shift-I), and go to the network tab
+- Click F5 to reload the page, this will show you a long list of stuff on this page, details aren't important.
+- Scroll to the top of the list, the second item's "File" column should say "home". Click this, it will open a panel with
+details for this item.
+- Under `Headers`, scroll down to the `Request` section, right-click on the `Cookie` entry, and `Copy value`.
+- create a text file at `~/lastfmdl/cookie` (no extension), paste the cookie string into it and save. 
+
+### Verifying cookie
+
+You should now have a cookie file with a long single of text that looks something like this 
+
+    lfmjs=1; csrftoken= <... this part clipped out for brevity...> not_first_visit=1
+
+Reinitialize with
+    
+    lastfm-dl --init
+
+If you did everything correctly, this should be report that access to last.fm works.
 
 ## Use
 
 The simplest method to save your scrobbles is
 
-    lastfm-dl --download --user <lastfm-username> --cookie <path-to-cookie-file>
+    lastfm-dl --download --user <lastfm-username>
 
-This requires a lastfm user name to download from, and a valid login cookie saved to a file on your pc. Scrobbles are saved to `/lastfm-dl/all-scrobbles.json` in your PC's default home directory. 
-
-### Resume broken downloads
-
-If your download gets interrupted, or if lastfm blocks you because you've hit a rate limit, you can resume the download by rerunning lastfm-dl with the same arguments you used previously. It will try to resume where it left off.
+Scrobbles are downloaded newest first, one page of scrobbles at a time. When your entire history has been downloaded, all scrobbles are saved in a single file `~/lastfmdl/scrobbles.json`. You can interrupt downloads at any time with CTRL-C or CTRL-Z depending on your operating system. To resume simply rerun the command above, download will always resume until your entire history has been processed.
 
 ### Download new scrobbles
 
-After successfully downloading your history, you can download and append new scrobbles. Simply run the downloader again, using the same save directory as before, leaving the existing json save file in place. Lastfm-dl will update `all-scrobbles.json`, while also generating an adjacent backup of this file before changing it.
+After successfully downloading your history, you can append new scrobbles to it as well, as long as `~/lastfmdl/scrobbles.json` is left in place (if you remove this file, you'll redownload your entire history ). Rerun the command above, a new session will start, you can interrupt and resume this too if necessary, and when complete `scrobbles.json` will be updated. An adjacent backup of `scrobbles.json` will also be created, just in case. 
 
 ## Additional arguments
 
@@ -50,40 +82,42 @@ There are several optional arguments for downloading.
 
 ### Save path
 
-Set another path to save your scrobbles to with
+By default lastfm-dl works in your home directory, where it will create the directory `lastfmdl`. Your scrobbles and temporary files will be created here. 
 
-    lastfm-dl --save <path> ...
+To use another path, use the `--save` parameter.
+
+    lastfm-dl --save <path> ...<other args>...
 
 ### New session
 
-By default, lastfm-dl supports download resumption, this is done as part of a session, and a session persists until all your existing scrobbles have been successfuly downloaded. If for some reason you want to abandon an existing session and start from scratch, use the clear switch
+By default, lastfm-dl supports download resumption, this is done as part of a session, and a session persists until all your existing scrobbles have been successfuly downloaded. If for some reason you want to abandon an existing session, or suspect a session is corrupt, you can force clear it with 
 
-    lastfm-dl --clear ...
+    lastfm-dl --clear ...<other args>...
 
 ### Session and page count
 
 Lastfm-dl download resumption relies on lastfm's scrobble paging system, but page content changes as you scrobble new plays. If you try to resume a download while scrobbling, you could get a warning that your page count has changed since you started the session. You can ignore this warning with the ignore flag.
 
-    lastfm-dl --ignore ...
+    lastfm-dl --ignore ...<other args>...
 
-Note that you risk losing some of your history this way, the amount lost dependent on how many plays saved since last time. The alternative to ignoring the error is to start a new session from scratch (using the --clear flag), or not to scrobble at all while you are downloading your history.
+Note that you risk losing some of your history this way, the amount lost depends on how many plays have been scrobbled since the session started. The alternative to ignoring the error is to start a new session from scratch (using the --clear flag), or not to scrobble at all while you are downloading your history. There is no satisfying workaround for this, it's just how last.fm works. 
 
 
 ## Common issues
 
-### Rate limits
+### Rate limits and outtages
 
-If you have a lot of data, you may hit a short-term rate limit on your requests - this takes the form of an error 600. Retry a few times, if it perists wait a few hours then try again.
+If you have a lot of data, you may hit a short-term rate limit on your requests - this takes the form of an error 600. By default lastfm-dl will automatically retry a few times before giving up. If the you encounter a serious outtage, try again later.
 
 ### Timestamps and lost scrobbles
 
-Lastfm scrobbles are not uniquely identifiable - they have a timestamp, but this timestamp is not completely accurate. Older scrobbles (from 2004) often share timestamps, and it seems that over time, Lastfm changed how timestamps were generated. 
+Lastfm scrobbles are not uniquely identifiable - they have a timestamp, but this timestamp is not completely accurate. Older scrobbles (from 2004) often share timestamps, and it seems that over time, Last.fm improved timestamp accuracy. 
 
-Additionally, on very old profiles, it seems the total scrobble count displayed for a profile doesn't always match the number of scrobbles downloaded. On very old profiles with many plays (close to one million plays), total scrobble count and actual downloaded scrobbles are known to be off by a few hundred plays.
+Additionally, on very old profiles, it seems the total scrobble count displayed at the top of profile doesn't always match the number of scrobbles downloaded, though the differences seem to be very small (fractions of a percent).
 
 ### Multiple users
 
-All scrobbles are saved to a single path. lastfm-dl does not differentiate between users. If you want to download data for multiple users, use the `--save` argument and save to a different location for each user.
+All scrobbles are saved to a single path. lastfm-dl does not differentiate between users. If you want to download data for multiple users, use the `--save` argument and save to a different location for each user. 
 
 ## License
 

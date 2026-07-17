@@ -11,62 +11,48 @@ namespace Lastfm_dl
         /// </summary>
         public static UserScrobblePagesResponse GetScrobblePages(string user)
         {
-            
-            WebClient client = new WebClient();
 
+            PageRequest httpRequest = new PageRequest($"https://www.last.fm/user/{user}/library");
             string paginationRaw;
-            try 
-            {
-                paginationRaw = client.DownloadString($"https://www.last.fm/user/{user}/library");
-            }
-            catch(WebException ex)
-            {
-                HttpWebResponse response = ex.Response as HttpWebResponse;
-                if (response != null && (int)response.StatusCode == 404)
-                {
-                    return new UserScrobblePagesResponse { 
-                        Error = UserScrobblePagesResponse.Errors.UserDoesNotfound,
-                        Description = $"User \"{user}\" does not exist on last.fm"
-                    };
-                }
-
+            
+            PageResponse pageRespone = httpRequest.Execute();
+            if (!pageRespone.Succeeded)
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
-                    Description = ex.Message
+                    Description = pageRespone.Description
                 };
-            }
-            catch(Exception ex)
-            {
+
+            if (pageRespone.StatusCode == 404)
+                return new UserScrobblePagesResponse { 
+                    Error = UserScrobblePagesResponse.Errors.UserDoesNotfound,
+                    Description = $"User \"{user}\" does not exist on last.fm"
+                };
+
+            if (pageRespone.StatusCode != 200)
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
-                    Description = ex.Message
+                    Description = $"Last fm returned error code \"{pageRespone.StatusCode}\"\n{pageRespone.Body.DocumentNode.InnerText} "
                 };
-            }
 
-
-            HtmlDocument htmlDoc = new HtmlDocument();
-            htmlDoc.LoadHtml(paginationRaw);
+            HtmlDocument htmlDoc = pageRespone.Body;
 
             HtmlNode pagination = htmlDoc.DocumentNode.SelectSingleNode("//ul[contains(@class, 'pagination-list')]");
             HtmlNodeCollection pages = pagination.SelectNodes(".//li[contains(@class, 'pagination-page')]");
             if (pages.Count == 0)
-            {
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
                     Description = "No pages found for user stats - exiting"
                 };
 
-            }
             var lastPagination = pages[pages.Count -1];
             if (lastPagination == null)
-            {
                 return new UserScrobblePagesResponse { 
                     Error = UserScrobblePagesResponse.Errors.Unknown,
                     Description = "Failed to get last page"
                 };
-            }
 
             int totalPages = 0;
+
             try 
             {
                 totalPages = Int32.Parse(lastPagination.InnerText);
@@ -88,9 +74,8 @@ namespace Lastfm_dl
         ///
         /// 
         /// 
-        public static ScrobblesOnPageResponse GetScrobbledOnPage(string user, int page, string cookie, int pagePause)
+        public static ScrobblesOnPageResponse GetScrobblesOnPage(string user, int page, string cookie, int pagePause)
         {
-
             WebClient client = new WebClient();
             int pageRetries = 0;
             int maxPageRetries = 5;
@@ -202,5 +187,6 @@ namespace Lastfm_dl
                 Description = $"ERROR : Too many retries on page {page}, exiting"
             };
         }
+
     }    
 }

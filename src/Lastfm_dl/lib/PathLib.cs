@@ -18,25 +18,16 @@ namespace Lastfm_dl
 
         public static string SessionPath(string workPath)
         {
-            if (Path.GetFileName(workPath) != "lastfmdl")
-                throw new Exception($"Unsafe workingpath detected : {workPath}");
-
             return Path.Join(workPath, "session");
         }
 
         public static string ScrobblesPath(string workPath)
         {
-            if (Path.GetFileName(workPath) != "lastfmdl")
-                throw new Exception($"Unsafe workingpath detected : {workPath}");
-
             return Path.Join(SessionPath(workPath), "scrobbles");
         }
 
         public static string CollatedFilePath(string workPath)
         {
-            if (Path.GetFileName(workPath) != "lastfmdl")
-                throw new Exception($"Unsafe workingpath detected : {workPath}");
-
             return Path.Join(workPath, "scrobbles.json" );
         }
 

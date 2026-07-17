@@ -24,8 +24,7 @@ namespace Lastfm_dl
             bool additive = true,
             bool clearSession = false,
             int? forceStartPage = null, 
-            int? forceStopPage = null
-            )
+            int? forceStopPage = null)
         {
             if (pagePause < 5000)
             {

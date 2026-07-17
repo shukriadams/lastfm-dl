@@ -6,8 +6,7 @@ namespace Lastfm_dl
 {
     /* 
         Wraps http lookup, lets us repeat a lookup a few times - lastfm often returns a 600, and doing the call
-        again gets us past it. Also abstracts away a lot of the rubbish around httpclient and the many lines 
-        of trash code needed to make it do simple things. 
+        again gets us past it. Also abstracts away the backward exception-driven connection handling.
     */
     public class PageRequest
     {
@@ -76,7 +75,9 @@ namespace Lastfm_dl
                     }
 
                     HttpResponseMessage resp = client.Send(req);
+
                     int statuscode = (int)resp.StatusCode;
+
                     // last fm is having a moment, try again
                     if (statuscode == 600)
                     {

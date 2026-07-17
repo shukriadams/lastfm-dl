@@ -40,6 +40,8 @@ namespace Lastfm_dl
             // print current data on disk if any
             if (sessionResponse.Collation != null)
                 Console.WriteLine($"existing scrobble file found for user {sessionResponse.Collation.User}, {sessionResponse.Collation.ScrobbleCount} scrobbles already downloaded");
+
+            Console.WriteLine("Initialization complete. Run with --download to download scrobbles.");
         }
     }
 }

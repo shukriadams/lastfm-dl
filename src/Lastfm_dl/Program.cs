@@ -22,9 +22,9 @@ namespace Lastfm_dl
 
                 CommandLineSwitches switches = new CommandLineSwitches();
                 
-                switches.Add(new Argument("version", typeof(string)) { LongName = "version", ShortName = "v" });
-                switches.Add(new Argument("init", typeof(string)) { LongName = "init", ShortName = "i" });
-                switches.Add(new Argument("download", typeof(string)) { LongName = "download", ShortName = "d" });
+                switches.Add(new Argument("version", typeof(string)) { LongName = "version", ShortName = "v", IsExclusive = true });
+                switches.Add(new Argument("init", typeof(string)) { LongName = "init", ShortName = "i", IsExclusive = true });
+                switches.Add(new Argument("download", typeof(string)) { LongName = "download", ShortName = "d", IsExclusive = true });
                 switches.Add(new Argument("user", typeof(string)) { LongName = "user", ShortName = "u" });
                 switches.Add(new Argument("cookie", typeof(string)) { LongName = "cookie", ShortName = "c" });
                 switches.Add(new Argument("limit", typeof(int?)) { LongName = "limit", ShortName = "l" });

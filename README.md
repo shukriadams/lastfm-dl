@@ -6,7 +6,7 @@ App for downloading scrobbles from Last.fm - save your play history for posterit
 
 - Download interruption - stop and resume downloads until your entire history is saved.
 - Updated downloads - add new scrobbles to an existing full history download.
-- Will not hammer last.fm, mostly avoiding rate limits.
+- Downloads in pulsed increments - does not hammer last.fm, avoiding rate limits.
 
 ## Install
 
@@ -16,7 +16,7 @@ This is a terminal app, run it with
 
     lastfm-dl 
 
-By default, lastfm-dl uses the path ~/lastfmdl, and your scrobbles are saved to ~/lastfmdl/scrobbles.json  You can specify a different location if desired, but all examples below assume the default location.
+By default, lastfm-dl uses the path `~/lastfmdl`, and your scrobbles are saved to `~/lastfmdl/scrobbles.json`. You can specify a different location if desired, but all examples below assume the default location.
 
 It's a good idea to initialize with
 
@@ -26,31 +26,31 @@ This will automatically create your save location directory, and check the statu
 
 ## Authentication
 
-To read scrobbles, last.fm requires that you are logged in to their website in a browser. You can however use any valid last.fm account to do this. 
+To read scrobbles, last.fm requires that you are logged in to their website in a browser. You can log in with any valid last.fm account, not necessarily the user whose data you intend to download. 
 
-lastfm-dl doesn't need your last.fm password, only the browser cookie that is generated when you log in. A cookie is some text stored in your browser, and there are several ways to get it, two of which are explained below. Note that all examples below are for Firefox. 
+lastfm-dl doesn't need your last.fm password, only the browser cookie that is generated when you log in. Here are two ways to get this cookie, note that both examples assume your browser is Firefox. 
 
 ### Plugin 
 
-The simplest way to get your cookie with a cookie reading plugin.
+The simplest way to get your cookie is with a cookie reading plugin.
 
-- install [cookie-editor](https://addons.mozilla.org/en-US/firefox/addon/cookie-editor), allow cookie-editor to pin to your taskbar.
-- log in to last.fm.
-- while viewing any last.fm page click the cookie-editor icon in your taskbar.
-- in the lower right corner of the cookie-editor panel click the "export" button, and select "header string".
-- create a text file at `~/lastfmdl/cookie` (no extension), paste the cookie string into it and save. 
+- install [cookie-editor](https://addons.mozilla.org/en-US/firefox/addon/cookie-editor), allow cookie-editor to pin to your taskbar
+- log in to last.fm
+- while viewing any last.fm page click the cookie-editor icon in your taskbar
+- in the lower right corner of the cookie-editor panel click the "export" button, and select "header string", this copies the string to your clipboard
+- create a text file at `~/lastfmdl/cookie` (no extension), paste the cookie string into it and save
 
 ### Manually
 
 If you don't want to use a plugin, you can get the cookie string as follows
 
-- Log in to Last.fm in your browser, go to https://last.fm, your current page address should be https://last.fm/home
-- Access the develop console (Ctrl-Shift-I), and go to the network tab
-- Click F5 to reload the page, this will show you a long list of stuff on this page, details aren't important.
-- Scroll to the top of the list, the second item's "File" column should say "home". Click this, it will open a panel with
-details for this item.
-- Under `Headers`, scroll down to the `Request` section, right-click on the `Cookie` entry, and `Copy value`.
-- create a text file at `~/lastfmdl/cookie` (no extension), paste the cookie string into it and save. 
+- log in to Last.fm in your browser, go to https://last.fm, your current page address should be https://last.fm/home
+- access the develop console (Ctrl-Shift-I), and go to the network tab
+- click F5 to reload the page, this will show you a long list of stuff on this page, details aren't important
+- scroll to the top of the list, the second item's "File" column should say "home". Click this, it will open a panel with
+details for this item
+- under `Headers`, scroll down to the `Request` section, right-click on the `Cookie` entry, and `Copy value`.
+- create a text file at `~/lastfmdl/cookie` (no extension), paste the cookie string into it and save 
 
 ### Verifying cookie
 
@@ -74,7 +74,7 @@ Scrobbles are downloaded newest first, one page of scrobbles at a time. When you
 
 ### Download new scrobbles
 
-After successfully downloading your history, you can append new scrobbles to it as well, as long as `~/lastfmdl/scrobbles.json` is left in place (if you remove this file, you'll redownload your entire history ). Rerun the command above, a new session will start, you can interrupt and resume this too if necessary, and when complete `scrobbles.json` will be updated. An adjacent backup of `scrobbles.json` will also be created, just in case. 
+After successfully downloading your history, you can append new scrobbles to it as well, as long as `~/lastfmdl/scrobbles.json` is left in place (if you remove this file, you'll redownload your entire history). Rerun the command above, a new session will start, you can interrupt and resume this too if necessary, and when complete `scrobbles.json` will be updated. An adjacent backup of `scrobbles.json` will also be created, just in case.
 
 ## Additional arguments
 
@@ -107,13 +107,13 @@ Note that you risk losing some of your history this way, the amount lost depends
 
 ### Rate limits and outtages
 
-If you have a lot of data, you may hit a short-term rate limit on your requests - this takes the form of an error 600. By default lastfm-dl will automatically retry a few times before giving up. If the you encounter a serious outtage, try again later.
+If you have a lot of data, you may hit a short-term rate limit on your requests - this takes the form of an error 600. By default lastfm-dl will automatically retry a few times before giving up. If you encounter a serious outtage, try again later.
 
 ### Timestamps and lost scrobbles
 
 Lastfm scrobbles are not uniquely identifiable - they have a timestamp, but this timestamp is not completely accurate. Older scrobbles (from 2004) often share timestamps, and it seems that over time, Last.fm improved timestamp accuracy. 
 
-Additionally, on very old profiles, it seems the total scrobble count displayed at the top of profile doesn't always match the number of scrobbles downloaded, though the differences seem to be very small (fractions of a percent).
+On very old profiles, the total scrobble count displayed at the top of profile page may not match the number of scrobbles downloaded, though the differences seem to be very small (fractions of a percent).
 
 ### Multiple users
 
